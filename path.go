@@ -62,5 +62,29 @@ func NewPath(path string) (Path, error) {
 			return []*yaml.Node{}, errors.New("not found")
 		}, nil
 	}
+
+	if strings.HasPrefix(path, "['") {
+		suffix := strings.TrimPrefix(path, "['")
+		tail := strings.SplitN(suffix, "']", 2)
+		if len(tail) != 2 {
+			return bad, errors.New("unmatched ['")
+		}
+		var err error
+		t, err := NewPath(tail[1])
+		if err != nil {
+			return bad, err
+		}
+		return func(node *yaml.Node) ([]*yaml.Node, error) {
+			if node.Kind != yaml.MappingNode {
+				return []*yaml.Node{}, errors.New("not a mapping node, so no children")
+			}
+			for i, n := range node.Content {
+				if n.Value == tail[0] {
+					return t(node.Content[i+1])
+				}
+			}
+			return []*yaml.Node{}, errors.New("not found")
+		}, nil
+	}
 	panic("not implemented!")
 }

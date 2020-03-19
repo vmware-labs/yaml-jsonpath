@@ -40,48 +40,67 @@ store:
 	require.NoError(t, err)
 
 	cases := []struct {
-		name        string
-		path        string
-		expected    []*yaml.Node
-		expectedErr string
+		name            string
+		path            string
+		expected        []*yaml.Node
+		expectedPathErr string
 	}{
 		{
-			name:        "identity",
-			path:        "",
-			expected:    []*yaml.Node{&n},
-			expectedErr: "",
+			name:            "identity",
+			path:            "",
+			expected:        []*yaml.Node{&n},
+			expectedPathErr: "",
 		},
 		{
-			name:        "root",
-			path:        "$",
-			expected:    []*yaml.Node{n.Content[0]},
-			expectedErr: "",
+			name:            "root",
+			path:            "$",
+			expected:        []*yaml.Node{n.Content[0]},
+			expectedPathErr: "",
 		},
 		{
-			name:        "dot child",
-			path:        "$.store",
-			expected:    []*yaml.Node{n.Content[0].Content[1]},
-			expectedErr: "",
+			name:            "dot child",
+			path:            "$.store",
+			expected:        []*yaml.Node{n.Content[0].Content[1]},
+			expectedPathErr: "",
 		},
 		{
-			name:        "dot child of child",
-			path:        "$.store.book",
-			expected:    []*yaml.Node{n.Content[0].Content[1].Content[1]},
-			expectedErr: "",
+			name:            "dot child of child",
+			path:            "$.store.book",
+			expected:        []*yaml.Node{n.Content[0].Content[1].Content[1]},
+			expectedPathErr: "",
+		},
+		{
+			name:            "bracket child",
+			path:            "$['store']",
+			expected:        []*yaml.Node{n.Content[0].Content[1]},
+			expectedPathErr: "",
+		},
+		{
+			name:            "bracket child of child",
+			path:            "$['store']['book']",
+			expected:        []*yaml.Node{n.Content[0].Content[1].Content[1]},
+			expectedPathErr: "",
+		},
+		{
+			name:            "bracket child unmatched",
+			path:            "$['store",
+			expected:        []*yaml.Node{n.Content[0].Content[1]},
+			expectedPathErr: "unmatched ['",
 		},
 	}
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			p, err := yamlpath.NewPath(tc.path)
-			require.NoError(t, err)
-
-			actual, err := yamlpath.Find(&n, p)
-			if tc.expectedErr == "" {
+			if tc.expectedPathErr == "" {
 				require.NoError(t, err)
 			} else {
-				require.EqualError(t, err, tc.expectedErr)
+				require.EqualError(t, err, tc.expectedPathErr)
+				return
 			}
+
+			actual, err := yamlpath.Find(&n, p)
+			require.NoError(t, err)
 			require.Equal(t, tc.expected, actual)
 		})
 	}
