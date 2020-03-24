@@ -48,8 +48,8 @@ spec:
 		log.Fatalf("cannot create path: %v", err)
 	}
 
-	q, err := p(&n)
-	if err != nil || len(q) != 1 {
+	q := p.Find(&n)
+	if len(q) != 1 {
 		log.Fatalf("path failed: %v", err)
 	}
 
@@ -60,7 +60,6 @@ spec:
 	defer e.Close()
 	e.SetIndent(2)
 
-	// d, err := yaml.Marshal(&n)
 	err = e.Encode(&n)
 	if err != nil {
 		log.Fatalf("cannot marshal node: %v", err)
