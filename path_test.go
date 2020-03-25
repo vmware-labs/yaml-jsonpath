@@ -186,6 +186,17 @@ store:
 			expected:        []*yaml.Node{},
 			expectedPathErr: "missing child name",
 		},
+		{
+			name: "wildcarded children",
+			path: "$.store.bicycle.*",
+			expected: []*yaml.Node{
+				n.Content[0].Content[1].Content[3].Content[0],
+				n.Content[0].Content[1].Content[3].Content[1],
+				n.Content[0].Content[1].Content[3].Content[2],
+				n.Content[0].Content[1].Content[3].Content[3],
+			},
+			expectedPathErr: "",
+		},
 	}
 
 	for _, tc := range cases {

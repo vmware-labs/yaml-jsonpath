@@ -14,7 +14,7 @@ Valid paths conform to the following BNF syntax.
               <recursive descent> <subpath>
 
 <child> ::= <dot child> | <bracket child>
-<dot child> ::= "." <child name>                         ; child named <child name>
+<dot child> ::= "." <child name> | ".*"                  ; child named <child name> or all children
 <bracket child> ::= "['" <child name> "']"               ; child named <child name>
 
 <recursive descent> ::= ".." <child name>                ; all the descendants named <child name>

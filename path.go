@@ -75,6 +75,18 @@ func NewPath(path string) (*Path, error) {
 		}), nil
 	}
 
+	// wildcarded child
+	if strings.HasPrefix(path, ".*") {
+		suffix := strings.TrimPrefix(path, ".*")
+
+		subPath, err := NewPath(suffix)
+		if err != nil {
+			return new(empty), err
+		}
+
+		return allChildrenThen(subPath), nil
+	}
+
 	// dot child
 	if strings.HasPrefix(path, ".") {
 		suffix := strings.TrimPrefix(path, ".")
@@ -157,5 +169,18 @@ func childThen(childName string, p *Path) *Path {
 			}
 		}
 		return empty(node)
+	})
+}
+
+func allChildrenThen(p *Path) *Path {
+	return new(func(node *yaml.Node) yit.Iterator {
+		if node.Kind != yaml.MappingNode {
+			return empty(node)
+		}
+		its := []yit.Iterator{}
+		for _, n := range node.Content {
+			its = append(its, yit.FromNode(n))
+		}
+		return yit.FromIterators(its...)
 	})
 }
