@@ -16,17 +16,14 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// Example uses a Path to find certain nodes and replace their content. Unlike a global change, it avoids false positives.
 func Example() {
-	// TODO: change the example once array indexing is implemented
 	y := `---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: sample-deployment
 spec:
-  temphack:
-    name: blah
-    image: blah
   template:
     spec:
       containers:
@@ -34,6 +31,10 @@ spec:
         image: nginx
         ports:
         - containerPort: 80
+      - name: nginy
+        image: nginy
+        ports:
+        - containerPort: 81
 `
 	var n yaml.Node
 
@@ -42,18 +43,16 @@ spec:
 		log.Fatalf("cannot unmarshal data: %v", err)
 	}
 
-	// p, err := yamlpath.NewPath("$.spec.template.spec.containers[0].image")
-	p, err := yamlpath.NewPath("$.spec.temphack.image")
+	p, err := yamlpath.NewPath("$.spec.template.spec.containers[*].image")
 	if err != nil {
 		log.Fatalf("cannot create path: %v", err)
 	}
 
 	q := p.Find(&n)
-	if len(q) != 1 {
-		log.Fatalf("path failed: %v", err)
-	}
 
-	q[0].Value = "asdf"
+	for _, i := range q {
+		i.Value = "example.com/user/" + i.Value
+	}
 
 	var buf bytes.Buffer
 	e := yaml.NewEncoder(&buf)
@@ -70,16 +69,17 @@ kind: Deployment
 metadata:
   name: sample-deployment
 spec:
-  temphack:
-    name: blah
-    image: asdf
   template:
     spec:
       containers:
       - name: nginx
-        image: nginx
+        image: example.com/user/nginx
         ports:
         - containerPort: 80
+      - name: nginy
+        image: example.com/user/nginy
+        ports:
+        - containerPort: 81
 `
 	if buf.String() == z {
 		fmt.Printf("success")

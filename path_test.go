@@ -7,6 +7,7 @@
 package yamlpath_test
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/glyn/go-yamlpath"
@@ -48,153 +49,504 @@ store:
 	cases := []struct {
 		name            string
 		path            string
-		expected        []*yaml.Node
+		expectedStrings []string
 		expectedPathErr string
 	}{
 		{
-			name:            "identity",
-			path:            "",
-			expected:        []*yaml.Node{&n},
+			name: "identity",
+			path: "",
+			expectedStrings: []string{`store:
+  book:
+  - category: reference
+    author: Nigel Rees
+    title: Sayings of the Century
+    price: 8.95
+  - category: fiction
+    author: Evelyn Waugh
+    title: Sword of Honour
+    price: 12.99
+  - category: fiction
+    author: Herman Melville
+    title: Moby Dick
+    isbn: 0-553-21311-3
+    price: 8.99
+  - category: fiction
+    author: J. R. R. Tolkien
+    title: The Lord of the Rings
+    isbn: 0-395-19395-8
+    price: 22.99
+  bicycle:
+    color: red
+    price: 19.95
+`},
 			expectedPathErr: "",
 		},
 		{
-			name:            "root",
-			path:            "$",
-			expected:        []*yaml.Node{n.Content[0]},
+			name: "root",
+			path: "$",
+			expectedStrings: []string{`store:
+  book:
+  - category: reference
+    author: Nigel Rees
+    title: Sayings of the Century
+    price: 8.95
+  - category: fiction
+    author: Evelyn Waugh
+    title: Sword of Honour
+    price: 12.99
+  - category: fiction
+    author: Herman Melville
+    title: Moby Dick
+    isbn: 0-553-21311-3
+    price: 8.99
+  - category: fiction
+    author: J. R. R. Tolkien
+    title: The Lord of the Rings
+    isbn: 0-395-19395-8
+    price: 22.99
+  bicycle:
+    color: red
+    price: 19.95
+`},
 			expectedPathErr: "",
 		},
 		{
-			name:            "dot child",
-			path:            "$.store",
-			expected:        []*yaml.Node{n.Content[0].Content[1]},
+			name: "dot child",
+			path: "$.store",
+			expectedStrings: []string{`book:
+- category: reference
+  author: Nigel Rees
+  title: Sayings of the Century
+  price: 8.95
+- category: fiction
+  author: Evelyn Waugh
+  title: Sword of Honour
+  price: 12.99
+- category: fiction
+  author: Herman Melville
+  title: Moby Dick
+  isbn: 0-553-21311-3
+  price: 8.99
+- category: fiction
+  author: J. R. R. Tolkien
+  title: The Lord of the Rings
+  isbn: 0-395-19395-8
+  price: 22.99
+bicycle:
+  color: red
+  price: 19.95
+`},
 			expectedPathErr: "",
 		},
 		{
 			name:            "dot child with no name",
 			path:            "$.",
-			expected:        []*yaml.Node{},
-			expectedPathErr: "missing child name",
+			expectedPathErr: "child name missing after .",
 		},
 		{
 			name:            "dot child with trailing dot",
 			path:            "$.store.",
-			expected:        []*yaml.Node{},
-			expectedPathErr: "missing child name",
+			expectedPathErr: "child name missing after .",
 		},
 		{
-			name:            "dot child of child",
-			path:            "$.store.book",
-			expected:        []*yaml.Node{n.Content[0].Content[1].Content[1]},
+			name: "dot child of dot child",
+			path: "$.store.book",
+			expectedStrings: []string{`- category: reference
+  author: Nigel Rees
+  title: Sayings of the Century
+  price: 8.95
+- category: fiction
+  author: Evelyn Waugh
+  title: Sword of Honour
+  price: 12.99
+- category: fiction
+  author: Herman Melville
+  title: Moby Dick
+  isbn: 0-553-21311-3
+  price: 8.99
+- category: fiction
+  author: J. R. R. Tolkien
+  title: The Lord of the Rings
+  isbn: 0-395-19395-8
+  price: 22.99
+`},
 			expectedPathErr: "",
 		},
 		{
-			name:            "bracket child",
-			path:            "$['store']",
-			expected:        []*yaml.Node{n.Content[0].Content[1]},
+			name: "bracket child",
+			path: "$['store']",
+			expectedStrings: []string{`book:
+- category: reference
+  author: Nigel Rees
+  title: Sayings of the Century
+  price: 8.95
+- category: fiction
+  author: Evelyn Waugh
+  title: Sword of Honour
+  price: 12.99
+- category: fiction
+  author: Herman Melville
+  title: Moby Dick
+  isbn: 0-553-21311-3
+  price: 8.99
+- category: fiction
+  author: J. R. R. Tolkien
+  title: The Lord of the Rings
+  isbn: 0-395-19395-8
+  price: 22.99
+bicycle:
+  color: red
+  price: 19.95
+`},
 			expectedPathErr: "",
 		},
 		{
 			name:            "bracket child with no name",
 			path:            "$['']",
-			expected:        []*yaml.Node{},
-			expectedPathErr: "missing child name",
+			expectedPathErr: "child name missing from ['']",
 		},
 		{
-			name:            "bracket child of child",
-			path:            "$['store']['book']",
-			expected:        []*yaml.Node{n.Content[0].Content[1].Content[1]},
+			name: "bracket child of bracket child",
+			path: "$['store']['book']",
+			expectedStrings: []string{`- category: reference
+  author: Nigel Rees
+  title: Sayings of the Century
+  price: 8.95
+- category: fiction
+  author: Evelyn Waugh
+  title: Sword of Honour
+  price: 12.99
+- category: fiction
+  author: Herman Melville
+  title: Moby Dick
+  isbn: 0-553-21311-3
+  price: 8.99
+- category: fiction
+  author: J. R. R. Tolkien
+  title: The Lord of the Rings
+  isbn: 0-395-19395-8
+  price: 22.99
+`},
 			expectedPathErr: "",
 		},
 		{
-			name:            "bracket child of dot child",
-			path:            "$.store['book']",
-			expected:        []*yaml.Node{n.Content[0].Content[1].Content[1]},
+			name: "bracket child of dot child",
+			path: "$.store['book']",
+			expectedStrings: []string{`- category: reference
+  author: Nigel Rees
+  title: Sayings of the Century
+  price: 8.95
+- category: fiction
+  author: Evelyn Waugh
+  title: Sword of Honour
+  price: 12.99
+- category: fiction
+  author: Herman Melville
+  title: Moby Dick
+  isbn: 0-553-21311-3
+  price: 8.99
+- category: fiction
+  author: J. R. R. Tolkien
+  title: The Lord of the Rings
+  isbn: 0-395-19395-8
+  price: 22.99
+`},
 			expectedPathErr: "",
 		},
 		{
-			name:            "dot child of bracket child",
-			path:            "$['store'].book",
-			expected:        []*yaml.Node{n.Content[0].Content[1].Content[1]},
+			name: "dot child of bracket child",
+			path: "$['store'].book",
+			expectedStrings: []string{`- category: reference
+  author: Nigel Rees
+  title: Sayings of the Century
+  price: 8.95
+- category: fiction
+  author: Evelyn Waugh
+  title: Sword of Honour
+  price: 12.99
+- category: fiction
+  author: Herman Melville
+  title: Moby Dick
+  isbn: 0-553-21311-3
+  price: 8.99
+- category: fiction
+  author: J. R. R. Tolkien
+  title: The Lord of the Rings
+  isbn: 0-395-19395-8
+  price: 22.99
+`},
 			expectedPathErr: "",
 		},
 		{
 			name:            "bracket child unmatched",
 			path:            "$['store",
-			expected:        []*yaml.Node{},
 			expectedPathErr: "unmatched ['",
 		},
 		{
 			name: "recursive descent",
 			path: "$..price",
-			expected: []*yaml.Node{
-				n.Content[0].Content[1].Content[1].Content[0].Content[7],
-				n.Content[0].Content[1].Content[1].Content[1].Content[7],
-				n.Content[0].Content[1].Content[1].Content[2].Content[9],
-				n.Content[0].Content[1].Content[1].Content[3].Content[9],
-				n.Content[0].Content[1].Content[3].Content[3],
+			expectedStrings: []string{
+				"8.95\n",
+				"12.99\n",
+				"8.99\n",
+				"22.99\n",
+				"19.95\n",
 			},
 			expectedPathErr: "",
 		},
 		{
 			name: "recursive descent of dot child",
 			path: "$.store.book..price",
-			expected: []*yaml.Node{
-				n.Content[0].Content[1].Content[1].Content[0].Content[7],
-				n.Content[0].Content[1].Content[1].Content[1].Content[7],
-				n.Content[0].Content[1].Content[1].Content[2].Content[9],
-				n.Content[0].Content[1].Content[1].Content[3].Content[9],
+			expectedStrings: []string{
+				"8.95\n",
+				"12.99\n",
+				"8.99\n",
+				"22.99\n",
 			},
 			expectedPathErr: "",
 		},
 		{
 			name: "recursive descent of bracket child",
 			path: "$['store']['book']..price",
-			expected: []*yaml.Node{
-				n.Content[0].Content[1].Content[1].Content[0].Content[7],
-				n.Content[0].Content[1].Content[1].Content[1].Content[7],
-				n.Content[0].Content[1].Content[1].Content[2].Content[9],
-				n.Content[0].Content[1].Content[1].Content[3].Content[9],
+			expectedStrings: []string{
+				"8.95\n",
+				"12.99\n",
+				"8.99\n",
+				"22.99\n",
 			},
 			expectedPathErr: "",
 		},
 		{
 			name: "repeated recursive descent",
 			path: "$..book..price",
-			expected: []*yaml.Node{
-				n.Content[0].Content[1].Content[1].Content[0].Content[7],
-				n.Content[0].Content[1].Content[1].Content[1].Content[7],
-				n.Content[0].Content[1].Content[1].Content[2].Content[9],
-				n.Content[0].Content[1].Content[1].Content[3].Content[9],
+			expectedStrings: []string{
+				"8.95\n",
+				"12.99\n",
+				"8.99\n",
+				"22.99\n",
 			},
 			expectedPathErr: "",
 		},
 		{
-			name:            "recursive descent with dot child",
-			path:            "$..bicycle.color",
-			expected:        []*yaml.Node{n.Content[0].Content[1].Content[3].Content[1]},
+			name: "recursive descent with dot child",
+			path: "$..bicycle.color",
+			expectedStrings: []string{
+				"red\n",
+			},
 			expectedPathErr: "",
 		},
 		{
-			name:            "recursive descent with bracket child",
-			path:            "$..bicycle['color']",
-			expected:        []*yaml.Node{n.Content[0].Content[1].Content[3].Content[1]},
+			name: "recursive descent with bracket child",
+			path: "$..bicycle['color']",
+			expectedStrings: []string{
+				"red\n",
+			},
 			expectedPathErr: "",
 		},
 		{
 			name:            "recursive descent with missing name",
 			path:            "$..",
-			expected:        []*yaml.Node{},
-			expectedPathErr: "missing child name",
+			expectedPathErr: "child name missing after ..",
 		},
 		{
 			name: "wildcarded children",
 			path: "$.store.bicycle.*",
-			expected: []*yaml.Node{
-				n.Content[0].Content[1].Content[3].Content[0],
-				n.Content[0].Content[1].Content[3].Content[1],
-				n.Content[0].Content[1].Content[3].Content[2],
-				n.Content[0].Content[1].Content[3].Content[3],
+			expectedStrings: []string{
+				"color\n",
+				"red\n",
+				"price\n",
+				"19.95\n",
 			},
+			expectedPathErr: "",
+		},
+		{
+			name: "array subscript wildcard",
+			path: "$.store.book[*]",
+			expectedStrings: []string{
+				`category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
+`,
+				`category: fiction
+author: Evelyn Waugh
+title: Sword of Honour
+price: 12.99
+`,
+				`category: fiction
+author: Herman Melville
+title: Moby Dick
+isbn: 0-553-21311-3
+price: 8.99
+`,
+				`category: fiction
+author: J. R. R. Tolkien
+title: The Lord of the Rings
+isbn: 0-395-19395-8
+price: 22.99
+`},
+			expectedPathErr: "",
+		},
+		{
+			name: "array subscript single",
+			path: "$.store.book[0]",
+			expectedStrings: []string{
+				`category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
+`},
+			expectedPathErr: "",
+		},
+		{
+			name: "array subscript from:to",
+			path: "$.store.book[1:3]",
+			expectedStrings: []string{
+				`category: fiction
+author: Evelyn Waugh
+title: Sword of Honour
+price: 12.99
+`,
+				`category: fiction
+author: Herman Melville
+title: Moby Dick
+isbn: 0-553-21311-3
+price: 8.99
+`},
+			expectedPathErr: "",
+		},
+		{
+			name: "array subscript from:to:step",
+			path: "$.store.book[0:3:2]",
+			expectedStrings: []string{
+				`category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
+`,
+				`category: fiction
+author: Herman Melville
+title: Moby Dick
+isbn: 0-553-21311-3
+price: 8.99
+`},
+			expectedPathErr: "",
+		},
+		{
+			name: "array subscript :to",
+			path: "$.store.book[:2]",
+			expectedStrings: []string{
+				`category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
+`,
+				`category: fiction
+author: Evelyn Waugh
+title: Sword of Honour
+price: 12.99
+`},
+			expectedPathErr: "",
+		}, {
+			name: "array subscript ::step",
+			path: "$.store.book[::2]",
+			expectedStrings: []string{
+				`category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
+`,
+				`category: fiction
+author: Herman Melville
+title: Moby Dick
+isbn: 0-553-21311-3
+price: 8.99
+`},
+			expectedPathErr: "",
+		},
+		{
+			name: "array subscript from:to:",
+			path: "$.store.book[1:3:]",
+			expectedStrings: []string{
+				`category: fiction
+author: Evelyn Waugh
+title: Sword of Honour
+price: 12.99
+`,
+				`category: fiction
+author: Herman Melville
+title: Moby Dick
+isbn: 0-553-21311-3
+price: 8.99
+`},
+			expectedPathErr: "",
+		},
+		{
+			name: "array subscript ::",
+			path: "$.store.book[::]",
+			expectedStrings: []string{
+				`category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
+`,
+				`category: fiction
+author: Evelyn Waugh
+title: Sword of Honour
+price: 12.99
+`,
+				`category: fiction
+author: Herman Melville
+title: Moby Dick
+isbn: 0-553-21311-3
+price: 8.99
+`,
+				`category: fiction
+author: J. R. R. Tolkien
+title: The Lord of the Rings
+isbn: 0-395-19395-8
+price: 22.99
+`},
+			expectedPathErr: "",
+		},
+		{
+			name: "array subscript ::-1",
+			path: "$.store.book[::-1]",
+			expectedStrings: []string{
+				`category: fiction
+author: J. R. R. Tolkien
+title: The Lord of the Rings
+isbn: 0-395-19395-8
+price: 22.99
+`,
+				`category: fiction
+author: Herman Melville
+title: Moby Dick
+isbn: 0-553-21311-3
+price: 8.99
+`,
+				`category: fiction
+author: Evelyn Waugh
+title: Sword of Honour
+price: 12.99
+`,
+				`category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
+`},
+			expectedPathErr: "",
+		},
+		{
+			name: "array subscript -1:",
+			path: "$.store.book[-1:]",
+			expectedStrings: []string{
+				`category: fiction
+author: J. R. R. Tolkien
+title: The Lord of the Rings
+isbn: 0-395-19395-8
+price: 22.99
+`},
 			expectedPathErr: "",
 		},
 	}
@@ -210,7 +562,20 @@ store:
 			}
 
 			actual := p.Find(&n)
-			require.Equal(t, tc.expected, actual)
+
+			actualStrings := []string{}
+			for _, a := range actual {
+				var buf bytes.Buffer
+				e := yaml.NewEncoder(&buf)
+				e.SetIndent(2)
+
+				err = e.Encode(a)
+				require.NoError(t, err)
+				e.Close()
+				actualStrings = append(actualStrings, buf.String())
+			}
+
+			require.Equal(t, tc.expectedStrings, actualStrings)
 		})
 	}
 }

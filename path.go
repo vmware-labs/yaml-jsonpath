@@ -8,6 +8,7 @@ package yamlpath
 
 import (
 	"errors"
+	"strconv"
 	"strings"
 
 	"github.com/dprotaso/go-yit"
@@ -26,15 +27,22 @@ func (p *Path) Find(node *yaml.Node) []*yaml.Node {
 
 // NewPath constructs a Path from a string expression.
 func NewPath(path string) (*Path, error) {
-	// identity
-	if path == "" {
-		return new(identity), nil
-	}
+	return newPath(lex("Path lexer", path))
+}
 
-	// root node
-	if strings.HasPrefix(path, "$") {
-		suffix := strings.TrimPrefix(path, "$")
-		subPath, err := NewPath(suffix)
+func newPath(l *lexer) (*Path, error) {
+	lexeme := l.nextLexeme()
+
+	switch lexeme.typ {
+
+	case lexemeError:
+		return nil, errors.New(lexeme.val)
+
+	case lexemeIdentity, lexemeEOF:
+		return new(identity), nil
+
+	case lexemeRoot:
+		subPath, err := newPath(l)
 		if err != nil {
 			return new(empty), err
 		}
@@ -44,94 +52,43 @@ func NewPath(path string) (*Path, error) {
 			}
 			return compose(yit.FromNode(node.Content[0]), subPath)
 		}), nil
-	}
 
-	// recursive descent
-	if strings.HasPrefix(path, "..") {
-		suffix := strings.TrimPrefix(path, "..")
-
-		i := strings.IndexAny(suffix, ".[")
-		var (
-			childName string
-			subPath   *Path
-		)
-		if i >= 0 {
-			childName = suffix[:i]
-			var err error
-			subPath, err = NewPath(suffix[i:])
-			if err != nil {
-				return new(empty), err
-			}
-		} else {
-			childName = suffix
-			subPath = new(identity)
+	case lexemeRecursiveDescent:
+		subPath, err := newPath(l)
+		if err != nil {
+			return new(empty), err
 		}
-		if childName == "" {
-			return new(empty), errors.New("missing child name")
-		}
-
+		childName := strings.TrimPrefix(lexeme.val, "..")
 		return new(func(node *yaml.Node) yit.Iterator {
 			return compose(yit.FromNode(node).RecurseNodes(), childThen(childName, subPath))
 		}), nil
-	}
 
-	// wildcarded child
-	if strings.HasPrefix(path, ".*") {
-		suffix := strings.TrimPrefix(path, ".*")
-
-		subPath, err := NewPath(suffix)
+	case lexemeDotChild:
+		subPath, err := newPath(l)
 		if err != nil {
 			return new(empty), err
 		}
-
-		return allChildrenThen(subPath), nil
-	}
-
-	// dot child
-	if strings.HasPrefix(path, ".") {
-		suffix := strings.TrimPrefix(path, ".")
-
-		i := strings.IndexAny(suffix, ".[")
-		var (
-			childName string
-			subPath   *Path
-		)
-		if i >= 0 {
-			childName = suffix[:i]
-			var err error
-			subPath, err = NewPath(suffix[i:])
-			if err != nil {
-				return new(empty), err
-			}
-		} else {
-			childName = suffix
-			subPath = new(identity)
-		}
-		if childName == "" {
-			return new(empty), errors.New("missing child name")
+		childName := strings.TrimPrefix(lexeme.val, ".")
+		if childName == "*" {
+			return allChildrenThen(subPath), nil
 		}
 		return childThen(childName, subPath), nil
-	}
 
-	// bracket child
-	if strings.HasPrefix(path, "['") {
-		suffix := strings.TrimPrefix(path, "['")
-
-		tail := strings.SplitN(suffix, "']", 2)
-		if len(tail) != 2 {
-			return new(empty), errors.New("unmatched ['")
-		}
-		var err error
-		subPath, err := NewPath(tail[1])
+	case lexemeBracketChild:
+		subPath, err := newPath(l)
 		if err != nil {
 			return new(empty), err
 		}
-		childName := tail[0]
-		if childName == "" {
-			return new(empty), errors.New("missing child name")
-		}
+		childName := strings.TrimSuffix(strings.TrimPrefix(lexeme.val, "['"), "']")
 		return childThen(childName, subPath), nil
 
+	case lexemeArraySubscript:
+		subPath, err := newPath(l)
+		if err != nil {
+			return new(empty), err
+		}
+		subscript := strings.TrimSuffix(strings.TrimPrefix(lexeme.val, "["), "]")
+		return arraySubscriptThen(subscript, subPath), nil
 	}
 
 	return new(empty), errors.New("invalid path syntax")
@@ -164,15 +121,14 @@ func childThen(childName string, p *Path) *Path {
 		}
 		for i, n := range node.Content {
 			if n.Value == childName {
-				j := yit.FromNode(node.Content[i+1])
-				return compose(j, p)
+				return compose(yit.FromNode(node.Content[i+1]), p)
 			}
 		}
 		return empty(node)
 	})
 }
 
-func allChildrenThen(p *Path) *Path {
+func allChildrenThen(p *Path) *Path { // FIXME: need to apply p
 	return new(func(node *yaml.Node) yit.Iterator {
 		if node.Kind != yaml.MappingNode {
 			return empty(node)
@@ -180,6 +136,69 @@ func allChildrenThen(p *Path) *Path {
 		its := []yit.Iterator{}
 		for _, n := range node.Content {
 			its = append(its, yit.FromNode(n))
+		}
+		return yit.FromIterators(its...)
+	})
+}
+
+func arraySubscriptThen(subscript string, p *Path) *Path {
+	return new(func(node *yaml.Node) yit.Iterator {
+		if node.Kind != yaml.SequenceNode {
+			return empty(node)
+		}
+		from := 0
+		step := 1
+		var to int
+		if subscript == "*" {
+			to = len(node.Content)
+		} else {
+			sliceParms := strings.Split(subscript, ":")
+			if len(sliceParms) > 3 {
+				// need to prevent this in the lexer
+				panic("malformed array subscript")
+			}
+			p := []int{}
+			for i, s := range sliceParms {
+				if i == 0 && s == "" {
+					p = append(p, 0)
+					continue
+				}
+				if i == 1 && s == "" {
+					p = append(p, len(node.Content))
+					continue
+				}
+				if i == 2 && s == "" {
+					p = append(p, 1)
+					continue
+				}
+				n, err := strconv.Atoi(s)
+				if err != nil {
+					// need to prevent this in the lexer
+					panic("non-integer array subscript index")
+				}
+				p = append(p, n)
+			}
+			from = p[0]
+			if from == -1 { // TODO: from < -1
+				from = len(node.Content) - 1
+			}
+			to = from + 1
+			if len(p) >= 2 {
+				to = p[1]
+			}
+			if len(p) == 3 {
+				step = p[2]
+			}
+		}
+		its := []yit.Iterator{}
+		if step > 0 {
+			for i := from; i < to; i += step {
+				its = append(its, compose(yit.FromNode(node.Content[i]), p))
+			}
+		} else if step < 0 {
+			for i := to - 1; i >= from; i += step {
+				its = append(its, compose(yit.FromNode(node.Content[i]), p))
+			}
 		}
 		return yit.FromIterators(its...)
 	})
