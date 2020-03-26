@@ -79,8 +79,8 @@ func newPath(l *lexer) (*Path, error) {
 		if err != nil {
 			return new(empty), err
 		}
-		childName := strings.TrimSuffix(strings.TrimPrefix(lexeme.val, "['"), "']")
-		return childThen(childName, subPath), nil
+		childNames := strings.TrimSuffix(strings.TrimPrefix(lexeme.val, "['"), "']")
+		return childrenThen(childNames, subPath), nil
 
 	case lexemeArraySubscript:
 		subPath, err := newPath(l)
@@ -112,6 +112,14 @@ func compose(i yit.Iterator, p *Path) yit.Iterator {
 
 func new(f func(node *yaml.Node) yit.Iterator) *Path {
 	return &Path{f: f}
+}
+
+func childrenThen(childNames string, p *Path) *Path {
+	c := strings.SplitN(childNames, ".", 2)
+	if len(c) == 2 {
+		return childThen(c[0], childrenThen(c[1], p))
+	}
+	return childThen(c[0], p)
 }
 
 func childThen(childName string, p *Path) *Path {

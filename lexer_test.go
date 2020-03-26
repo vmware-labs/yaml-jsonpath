@@ -116,6 +116,15 @@ func TestLexer(t *testing.T) {
 			},
 		},
 		{
+			name: "bracket dotted child",
+			path: "$['child1.child2']",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketChild, val: "['child1.child2']"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
 			name: "bracket child with array subscript",
 			path: "$['child'][*]",
 			expected: []lexeme{
