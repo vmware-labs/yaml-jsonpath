@@ -43,6 +43,15 @@ func TestLexer(t *testing.T) {
 			},
 		},
 		{
+			name: "dot child with implicit root",
+			path: ".child",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"}, // synthetic
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
 			name: "dot child with no name",
 			path: "$.",
 			expected: []lexeme{

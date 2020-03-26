@@ -7,7 +7,7 @@ YAML node searching using path notation.
 Valid paths conform to the following BNF syntax.
 
 ```
-<path> ::= <identity> | <root> <subpath>                 ; TODO: add `<subpath>` since <root> is optional
+<path> ::= <identity> | <root> <subpath> | <subpath>     ; <subpath> on its own is semantically equivalent to <root> <subpath>
 <identity> := ""                                         ; the current node
 <root> ::= "$"                                           ; the root node of a document
 <subpath> ::= <identity> | <child> <subpath> |

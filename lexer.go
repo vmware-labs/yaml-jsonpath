@@ -106,12 +106,21 @@ func (l *lexer) backup() {
 }
 
 // emit passes a lexeme back to the client.
-func (l *lexer) emit(t lexemeType) {
+func (l *lexer) emit(typ lexemeType) {
 	l.items <- lexeme{
-		typ: t,
+		typ: typ,
 		val: l.input[l.start:l.pos],
 	}
 	l.start = l.pos
+}
+
+// emitSynthetic passes a lexeme back to the client which wasn't encountered in the input.
+// The lexing position is not modified.
+func (l *lexer) emitSynthetic(typ lexemeType, val string) {
+	l.items <- lexeme{
+		typ: typ,
+		val: val,
+	}
 }
 
 func (l *lexer) empty() bool {
@@ -151,10 +160,9 @@ func lexPath(l *lexer) stateFn {
 		return lexRoot
 	}
 
-	// TODO: support subpath without preceeding root
-
-	l.emit(lexemeEOF)
-	return nil
+	// emit implicit root
+	l.emitSynthetic(lexemeRoot, root)
+	return lexSubPath
 }
 
 func lexRoot(l *lexer) stateFn {
