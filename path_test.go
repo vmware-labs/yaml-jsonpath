@@ -369,6 +369,18 @@ bicycle:
 			expectedPathErr: "",
 		},
 		{
+			name: "recursive descent with wildcard",
+			path: "$.store.bicycle..*",
+			expectedStrings: []string{
+				"color: red\nprice: 19.95\n",
+				"color\n",
+				"red\n",
+				"price\n",
+				"19.95\n",
+			},
+			expectedPathErr: "",
+		},
+		{
 			name: "repeated recursive descent",
 			path: "$..book..price",
 			expectedStrings: []string{

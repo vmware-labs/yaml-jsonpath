@@ -59,9 +59,15 @@ func newPath(l *lexer) (*Path, error) {
 			return new(empty), err
 		}
 		childName := strings.TrimPrefix(lexeme.val, "..")
-		return new(func(node *yaml.Node) yit.Iterator {
-			return compose(yit.FromNode(node).RecurseNodes(), childThen(childName, subPath))
-		}), nil
+		if childName == "*" {
+			return new(func(node *yaml.Node) yit.Iterator {
+				return compose(yit.FromNode(node).RecurseNodes(), subPath)
+			}), nil
+		} else {
+			return new(func(node *yaml.Node) yit.Iterator {
+				return compose(yit.FromNode(node).RecurseNodes(), childThen(childName, subPath))
+			}), nil
+		}
 
 	case lexemeDotChild:
 		subPath, err := newPath(l)
