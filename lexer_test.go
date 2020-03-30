@@ -89,6 +89,24 @@ func TestLexer(t *testing.T) {
 			},
 		},
 		{
+			name: "dot child with malformed array subscript",
+			path: "$.child[1:2:3:4]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeError, val: "invalid array index, too many colons: [1:2:3:4]"},
+			},
+		},
+		{
+			name: "dot child with non-integer array subscript",
+			path: "$.child[1:2:a]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeError, val: "invalid array index containing non-integer value: [1:2:a]"},
+			},
+		},
+		{
 			name: "bracket child",
 			path: "$['child']",
 			expected: []lexeme{
@@ -132,6 +150,24 @@ func TestLexer(t *testing.T) {
 				{typ: lexemeBracketChild, val: "['child']"},
 				{typ: lexemeArraySubscript, val: "[*]"},
 				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "bracket child with malformed array subscript",
+			path: "$['child'][1:2:3:4]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketChild, val: "['child']"},
+				{typ: lexemeError, val: "invalid array index, too many colons: [1:2:3:4]"},
+			},
+		},
+		{
+			name: "bracket child with non-integer array subscript",
+			path: "$['child'][1:2:a]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketChild, val: "['child']"},
+				{typ: lexemeError, val: "invalid array index containing non-integer value: [1:2:a]"},
 			},
 		},
 		{

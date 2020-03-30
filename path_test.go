@@ -658,6 +658,23 @@ price: 8.95
 			expectedPathErr: "",
 		},
 		{
+			name: "array subscript -2:-4",
+			path: "$.store.book[-2:-4]",
+			expectedStrings: []string{
+				`category: fiction
+author: Herman Melville
+title: Moby Dick
+isbn: 0-553-21311-3
+price: 8.99
+`,
+				`category: fiction
+author: Evelyn Waugh
+title: Sword of Honour
+price: 12.99
+`},
+			expectedPathErr: "",
+		},
+		{
 			name: "array subscript -1:",
 			path: "$.store.book[-1:]",
 			expectedStrings: []string{

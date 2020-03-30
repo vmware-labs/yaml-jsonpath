@@ -8,7 +8,6 @@ package yamlpath
 
 import (
 	"errors"
-	"strconv"
 	"strings"
 
 	"github.com/dprotaso/go-yit"
@@ -159,59 +158,16 @@ func arraySubscriptThen(subscript string, p *Path) *Path {
 		if node.Kind != yaml.SequenceNode {
 			return empty(node)
 		}
-		from := 0
-		step := 1
-		var to int
-		if subscript == "*" {
-			to = len(node.Content)
-		} else {
-			sliceParms := strings.Split(subscript, ":")
-			if len(sliceParms) > 3 {
-				// need to prevent this in the lexer
-				panic("malformed array subscript")
-			}
-			p := []int{}
-			for i, s := range sliceParms {
-				if i == 0 && s == "" {
-					p = append(p, 0)
-					continue
-				}
-				if i == 1 && s == "" {
-					p = append(p, len(node.Content))
-					continue
-				}
-				if i == 2 && s == "" {
-					p = append(p, 1)
-					continue
-				}
-				n, err := strconv.Atoi(s)
-				if err != nil {
-					// need to prevent this in the lexer
-					panic("non-integer array subscript index")
-				}
-				p = append(p, n)
-			}
-			from = p[0]
-			if from == -1 { // TODO: from < -1
-				from = len(node.Content) - 1
-			}
-			to = from + 1
-			if len(p) >= 2 {
-				to = p[1]
-			}
-			if len(p) == 3 {
-				step = p[2]
-			}
+
+		slice, err := slice(subscript, len(node.Content))
+		if err != nil {
+			panic(err) // should not happen, lexer should have detected errors
 		}
+
 		its := []yit.Iterator{}
-		if step > 0 {
-			for i := from; i < to; i += step {
-				its = append(its, compose(yit.FromNode(node.Content[i]), p))
-			}
-		} else if step < 0 {
-			for i := to - 1; i >= from; i += step {
-				its = append(its, compose(yit.FromNode(node.Content[i]), p))
-			}
+		for _, s := range slice {
+			its = append(its, compose(yit.FromNode(node.Content[s]), p))
+
 		}
 		return yit.FromIterators(its...)
 	})

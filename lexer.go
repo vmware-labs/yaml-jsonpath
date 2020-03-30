@@ -8,6 +8,7 @@ package yamlpath
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 	"unicode/utf8"
 )
@@ -109,9 +110,14 @@ func (l *lexer) backup() {
 func (l *lexer) emit(typ lexemeType) {
 	l.items <- lexeme{
 		typ: typ,
-		val: l.input[l.start:l.pos],
+		val: l.value(),
 	}
 	l.start = l.pos
+}
+
+// value returns the portion of the current lexeme scanned so far
+func (l *lexer) value() string {
+	return l.input[l.start:l.pos]
 }
 
 // emitSynthetic passes a lexeme back to the client which wasn't encountered in the input.
@@ -231,6 +237,9 @@ func lexSubPath(l *lexer) stateFn {
 			if !subscript {
 				return l.errorf("subscript missing from []")
 			}
+			if !validateArrayIndex(l) {
+				return nil
+			}
 			l.emit(lexemeArraySubscript)
 		}
 
@@ -275,6 +284,9 @@ func lexSubPath(l *lexer) stateFn {
 			if !subscript {
 				return l.errorf("subscript missing from []")
 			}
+			if !validateArrayIndex(l) {
+				return nil
+			}
 			l.emit(lexemeArraySubscript)
 		}
 
@@ -282,4 +294,25 @@ func lexSubPath(l *lexer) stateFn {
 	}
 
 	return l.errorf("invalid path syntax")
+}
+
+func validateArrayIndex(l *lexer) bool {
+	subscript := l.value()
+	index := strings.TrimSuffix(strings.TrimPrefix(subscript, leftBracket), rightBracket)
+	if index != "*" {
+		sliceParms := strings.Split(index, ":")
+		if len(sliceParms) > 3 {
+			l.errorf("invalid array index, too many colons: %s", subscript)
+			return false
+		}
+		for _, s := range sliceParms {
+			if s != "" {
+				if _, err := strconv.Atoi(s); err != nil {
+					l.errorf("invalid array index containing non-integer value: %s", subscript)
+					return false
+				}
+			}
+		}
+	}
+	return true
 }
