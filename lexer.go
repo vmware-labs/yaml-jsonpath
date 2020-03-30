@@ -281,5 +281,5 @@ func lexSubPath(l *lexer) stateFn {
 		return lexSubPath
 	}
 
-	panic("not implemented!")
+	return l.errorf("invalid path syntax")
 }
