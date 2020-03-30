@@ -40,6 +40,8 @@ store:
   bicycle:
     color: red
     price: 19.95
+  feather duster:
+    price: 9.95
 `
 	var n yaml.Node
 
@@ -78,6 +80,8 @@ store:
   bicycle:
     color: red
     price: 19.95
+  feather duster:
+    price: 9.95
 `},
 			expectedPathErr: "",
 		},
@@ -107,6 +111,8 @@ store:
   bicycle:
     color: red
     price: 19.95
+  feather duster:
+    price: 9.95
 `},
 			expectedPathErr: "",
 		},
@@ -135,6 +141,8 @@ store:
 bicycle:
   color: red
   price: 19.95
+feather duster:
+  price: 9.95
 `},
 			expectedPathErr: "",
 		},
@@ -163,6 +171,8 @@ bicycle:
 bicycle:
   color: red
   price: 19.95
+feather duster:
+  price: 9.95
 `},
 			expectedPathErr: "",
 		},
@@ -209,6 +219,14 @@ bicycle:
 			expectedPathErr: "",
 		},
 		{
+			name: "dot child with embedded space",
+			path: "$.store.feather duster.price",
+			expectedStrings: []string{
+				"9.95\n",
+			},
+			expectedPathErr: "",
+		},
+		{
 			name: "bracket child",
 			path: "$['store']",
 			expectedStrings: []string{`book:
@@ -233,6 +251,8 @@ bicycle:
 bicycle:
   color: red
   price: 19.95
+feather duster:
+  price: 9.95
 `},
 			expectedPathErr: "",
 		},
@@ -298,6 +318,14 @@ bicycle:
 			expectedPathErr: "",
 		},
 		{
+			name: "bracket child with embedded space",
+			path: "$.store['feather duster'].price",
+			expectedStrings: []string{
+				"9.95\n",
+			},
+			expectedPathErr: "",
+		},
+		{
 			name: "bracket child of dot child",
 			path: "$.store['book']",
 			expectedStrings: []string{`- category: reference
@@ -359,6 +387,7 @@ bicycle:
 				"8.99\n",
 				"22.99\n",
 				"19.95\n",
+				"9.95\n",
 			},
 			expectedPathErr: "",
 		},

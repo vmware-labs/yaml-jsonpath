@@ -57,6 +57,9 @@ This matches the root node of the input YAML node. This matcher may be specified
 
 This matches the children with the given name of all the mapping nodes in the input slice. The output slice consists of all those children. The given name may be a single child name (no periods) or a series of single child names separated by periods. Non-mapping nodes in the input slice are not matched.
 
+Although either form `.childname` or `['childname']` accepts a child name with embedded spaces, the 
+`['childname']` form may be more convenient in some situations.
+
 ### Recursive Descent: `..childname` or `..*`
 
 A matcher of the form `..childname` selects all the descendents of the nodes in the input slice (including those nodes) with the given name (using the same rules as the child matcher). The output slice consists of all the matching descendents.
