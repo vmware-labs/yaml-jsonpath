@@ -201,6 +201,14 @@ bicycle:
 			expectedPathErr: "",
 		},
 		{
+			name: "dot child with embedded wildcard",
+			path: "$.store.*.color",
+			expectedStrings: []string{
+				"red\n",
+			},
+			expectedPathErr: "",
+		},
+		{
 			name: "bracket child",
 			path: "$['store']",
 			expectedStrings: []string{`book:
@@ -279,6 +287,14 @@ bicycle:
   isbn: 0-395-19395-8
   price: 22.99
 `},
+			expectedPathErr: "",
+		},
+		{
+			name: "bracket child with embedded wildcard",
+			path: "$['store.*.color']",
+			expectedStrings: []string{
+				"red\n",
+			},
 			expectedPathErr: "",
 		},
 		{
@@ -413,8 +429,19 @@ bicycle:
 			expectedPathErr: "child name missing after ..",
 		},
 		{
-			name: "wildcarded children",
+			name: "dot wildcarded children",
 			path: "$.store.bicycle.*",
+			expectedStrings: []string{
+				"color\n",
+				"red\n",
+				"price\n",
+				"19.95\n",
+			},
+			expectedPathErr: "",
+		},
+		{
+			name: "bracketed wildcarded children",
+			path: "$['store.bicycle.*']",
 			expectedStrings: []string{
 				"color\n",
 				"red\n",

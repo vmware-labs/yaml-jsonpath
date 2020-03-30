@@ -59,15 +59,14 @@ func newPath(l *lexer) (*Path, error) {
 			return new(empty), err
 		}
 		childName := strings.TrimPrefix(lexeme.val, "..")
-		if childName == "*" {
+		if childName == "*" { // includes all nodes, not just mapping nodes
 			return new(func(node *yaml.Node) yit.Iterator {
 				return compose(yit.FromNode(node).RecurseNodes(), subPath)
 			}), nil
-		} else {
-			return new(func(node *yaml.Node) yit.Iterator {
-				return compose(yit.FromNode(node).RecurseNodes(), childThen(childName, subPath))
-			}), nil
 		}
+		return new(func(node *yaml.Node) yit.Iterator {
+			return compose(yit.FromNode(node).RecurseNodes(), childThen(childName, subPath))
+		}), nil
 
 	case lexemeDotChild:
 		subPath, err := newPath(l)
@@ -75,9 +74,6 @@ func newPath(l *lexer) (*Path, error) {
 			return new(empty), err
 		}
 		childName := strings.TrimPrefix(lexeme.val, ".")
-		if childName == "*" {
-			return allChildrenThen(subPath), nil
-		}
 		return childThen(childName, subPath), nil
 
 	case lexemeBracketChild:
@@ -129,6 +125,9 @@ func childrenThen(childNames string, p *Path) *Path {
 }
 
 func childThen(childName string, p *Path) *Path {
+	if childName == "*" {
+		return allChildrenThen(p)
+	}
 	return new(func(node *yaml.Node) yit.Iterator {
 		if node.Kind != yaml.MappingNode {
 			return empty(node)
@@ -142,14 +141,14 @@ func childThen(childName string, p *Path) *Path {
 	})
 }
 
-func allChildrenThen(p *Path) *Path { // FIXME: need to apply p
+func allChildrenThen(p *Path) *Path {
 	return new(func(node *yaml.Node) yit.Iterator {
 		if node.Kind != yaml.MappingNode {
 			return empty(node)
 		}
 		its := []yit.Iterator{}
 		for _, n := range node.Content {
-			its = append(its, yit.FromNode(n))
+			its = append(its, compose(yit.FromNode(n), p))
 		}
 		return yit.FromIterators(its...)
 	})
