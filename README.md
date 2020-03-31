@@ -77,3 +77,12 @@ A matcher of the form `[start:end]` or `[start:end:step]` selects the correspond
 start.
 
 A matcher of the form `[*]` selects all the nodes in each sequence node.
+
+## References
+
+The following sources inspired the syntax and semantics of Go YAML Path:
+
+* [JSONPath - XPath for JSON](https://goessner.net/articles/JsonPath/) by Stefan Goessner
+* [JSONPath Support](https://kubernetes.io/docs/reference/kubectl/jsonpath/) in the Kubernetes Reference documentation
+* [JSONPath User Guide](https://unofficial-kubernetes.readthedocs.io/en/latest/user-guide/jsonpath/) in the Unofficial Kubernetes documentation
+* [JSONPath Syntax](https://support.smartbear.com/alertsite/docs/monitors/api/endpoint/jsonpath.html) in the SmartBear AlertSite documentation
