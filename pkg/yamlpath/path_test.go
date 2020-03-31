@@ -10,7 +10,7 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/glyn/go-yamlpath"
+	"github.com/glyn/go-yamlpath/pkg/yamlpath"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/yaml.v3"
 )
