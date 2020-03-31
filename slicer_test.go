@@ -132,6 +132,27 @@ func TestSlicer(t *testing.T) {
 			expectedErr: "",
 		},
 		{
+			name:        "negative from, positive to",
+			index:       "-1:1",
+			length:      10,
+			expected:    []int{9, 8, 7, 6, 5, 4, 3, 2},
+			expectedErr: "",
+		},
+		{
+			name:        "positive from, negative to",
+			index:       "1:-1",
+			length:      10,
+			expected:    []int{1, 2, 3, 4, 5, 6, 7, 8},
+			expectedErr: "",
+		},
+		{
+			name:        "positive from, negative to, negative step",
+			index:       "1:-1:-1",
+			length:      10,
+			expected:    []int{8, 7, 6, 5, 4, 3, 2, 1},
+			expectedErr: "",
+		},
+		{
 			name:        "too many colons",
 			index:       "1:2:3:4",
 			length:      10,
