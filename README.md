@@ -10,7 +10,7 @@
 Valid paths are strings conforming to the following BNF syntax.
 
 ```
-<path> ::= <identity> | <root> <subpath> | <subpath>     ; <subpath> on its own is semantically equivalent to <root> <subpath>
+<path> ::= <identity> | <root> <subpath> | <subpath>
 <identity> := ""                                         ; the current node
 <root> ::= "$"                                           ; the root node of a document
 <subpath> ::= <identity> | <child> <subpath> |
@@ -26,7 +26,7 @@ Valid paths are strings conforming to the following BNF syntax.
 <array subscript> ::= "[" <index> "]"                    ; zero or more elements of a sequence
 <index> ::= <integer> | <range> | "*"                    ; specific index, range of indices, or all indices
 <range> ::= <integer> ":" <integer> |                    ; start (inclusive) to end (exclusive)
-            <integer> ":" <integer> ":" <integer>        ; start (iclusive) to end (exclusive) by step
+            <integer> ":" <integer> ":" <integer>        ; start (inclusive) to end (exclusive) by step
 ```
 
 The `NewPath` function parses a string path and returns a corresponding value of the `Path` type and
