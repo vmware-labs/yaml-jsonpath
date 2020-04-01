@@ -43,7 +43,7 @@ spec:
 		log.Fatalf("cannot unmarshal data: %v", err)
 	}
 
-	p, err := yamlpath.NewPath("$.spec.template.spec.containers[*].image")
+	p, err := yamlpath.NewPath("$..spec.containers[*].image")
 	if err != nil {
 		log.Fatalf("cannot create path: %v", err)
 	}
