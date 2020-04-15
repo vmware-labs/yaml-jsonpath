@@ -14,7 +14,7 @@ Valid paths are strings conforming to the following BNF syntax.
 <identity> := ""                                         ; the current node
 <root> ::= "$"                                           ; the root node of a document
 <subpath> ::= <identity> | <child> <subpath> |
-              <child> <array subscript> <subpath> |
+              <child> <array access> <subpath> |
               <recursive descent> <subpath>
 
 <child> ::= <dot child> | <bracket child>
@@ -23,10 +23,27 @@ Valid paths are strings conforming to the following BNF syntax.
 
 <recursive descent> ::= ".." <child name>                ; all the descendants named <child name>
 
-<array subscript> ::= "[" <index> "]"                    ; zero or more elements of a sequence
+<array access> ::= "[" <index> "]" | "[" <filter> "]"    ; zero or more elements of a sequence
 <index> ::= <integer> | <range> | "*"                    ; specific index, range of indices, or all indices
 <range> ::= <integer> ":" <integer> |                    ; start (inclusive) to end (exclusive)
             <integer> ":" <integer> ":" <integer>        ; start (inclusive) to end (exclusive) by step
+
+<filter> ::= "?(" <filter expr> ")"
+<filter expr> ::= "(" <filter expr> ")" |                ; bracketing (binds more tightly than !, &&, and ||)
+                   "!" <filter expr> |                   ; negation (binds more tightly than && and ||)
+                   <filter expr> && <filter expr> |      ; conjunction (binds more tightly than ||)
+                   <filter expr> || <filter expr> |      ; disjunction
+                   <basic filter>
+<basic filter> ::= <filter term> |                       ; filter term existence
+                   <filter term> == <filter term> |      ; equality
+                   <filter term> != <filter term> |      ; inequality
+                   <filter term> > <filter term> |       ; greater than
+                   <filter term> >= <filter term> |      ; greater than or equal to
+                   <filter term> < <filter term> |       ; less than
+                   <filter term> =~ <regular expr>       ; matches regular expression
+<filter term> ::= "@" <subpath> |                        ; item relative to element being processed
+                  "$" <subpath>                          ; item relative to root node of a document
+<regular expr> := "/" <string> "/"                       ; regular expression <<<<<<<<< WIP
 ```
 
 The `NewPath` function parses a string path and returns a corresponding value of the `Path` type and
