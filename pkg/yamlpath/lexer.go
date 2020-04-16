@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 )
 
@@ -41,6 +42,14 @@ const (
 	lexemeBracketChild
 	lexemeRecursiveDescent
 	lexemeArraySubscript
+	lexemeBracketFilter
+	lexemeFilterBracket
+	lexemeFilterOpenBracket
+	lexemeFilterCloseBracket
+	lexemeFilterNot
+	lexemeFilterAt
+	lexemeFilterConjunction
+	lexemeFilterDisjunction
 	lexemeEOF // lexing complete
 )
 
@@ -50,13 +59,15 @@ type stateFn func(*lexer) stateFn
 
 // lexer holds the state of the scanner.
 type lexer struct {
-	name  string      // name of the lexer, used only for error reports
-	input string      // the string being scanned
-	start int         // start position of this item
-	pos   int         // current position in the input
-	width int         // width of last rune read from input
-	state stateFn     // lexer state
-	items chan lexeme // channel of scanned lexemes
+	name             string      // name of the lexer, used only for error reports
+	input            string      // the string being scanned
+	start            int         // start position of this item
+	pos              int         // current position in the input
+	width            int         // width of last rune read from input
+	state            stateFn     // lexer state
+	stack            []stateFn   // lexer stack
+	items            chan lexeme // channel of scanned lexemes
+	lastEmittedStart int         // start position of last scanned lexeme
 }
 
 // lex creates a new scanner for the input string.
@@ -65,9 +76,31 @@ func lex(name, input string) *lexer {
 		name:  name,
 		input: input,
 		state: lexPath,
+		stack: make([]stateFn, 0),
 		items: make(chan lexeme, 2),
 	}
 	return l
+}
+
+// push pushes a state function on the stack which will be resumed when parsing terminates.
+func (l *lexer) push(state stateFn) {
+	l.stack = append(l.stack, state)
+}
+
+// pop pops a state function from the stack. If the stack is empty, returns an error function.
+func (l *lexer) pop() stateFn {
+	if len(l.stack) == 0 {
+		return l.errorf("lexer stack underflow")
+	}
+	index := len(l.stack) - 1
+	element := l.stack[index]
+	l.stack = l.stack[:index]
+	return element
+}
+
+// empty returns true if and onl if the stack of state functions is empty.
+func (l *lexer) emptyStack() bool {
+	return len(l.stack) == 0
 }
 
 // nextLexeme returns the next item from the input.
@@ -100,10 +133,36 @@ func (l *lexer) next() (rune rune) {
 	return rune
 }
 
+// peek returns the next rune in the input but without consuming it.
+// it is equivalent to calling next() followed by backup()
+func (l *lexer) peek() (rune rune) {
+	if l.pos >= len(l.input) {
+		l.width = 0
+		return eof
+	}
+	rune, l.width = utf8.DecodeRuneInString(l.input[l.pos:])
+	return rune
+}
+
 // backup steps back one rune.
 // Can be called only once per call of next.
 func (l *lexer) backup() {
 	l.pos -= l.width
+}
+
+// stripWhitespace strips out whitespace
+// it should only be called immediately after emitting a lexeme
+func (l *lexer) stripWhitespace() {
+	// find whitespace
+	for {
+		nextRune := l.next()
+		if !unicode.IsSpace(nextRune) {
+			l.backup()
+			break
+		}
+	}
+	// strip any whitespace
+	l.start = l.pos
 }
 
 // emit passes a lexeme back to the client.
@@ -112,12 +171,29 @@ func (l *lexer) emit(typ lexemeType) {
 		typ: typ,
 		val: l.value(),
 	}
+	l.lastEmittedStart = l.start
 	l.start = l.pos
 }
 
 // value returns the portion of the current lexeme scanned so far
 func (l *lexer) value() string {
 	return l.input[l.start:l.pos]
+}
+
+// context returns the last emitted lexeme (if any) followed by the portion
+// of the current lexeme scanned so far
+func (l *lexer) context() string {
+	return l.input[l.lastEmittedStart:l.pos]
+}
+
+// nextChar returns the next character in the input
+func (l *lexer) nextChar() string {
+	if l.pos >= len(l.input) {
+		return ""
+	}
+	b := []byte(l.input[l.pos:])
+	_, size := utf8.DecodeRune(b)
+	return string(b[:size])
 }
 
 // emitSynthetic passes a lexeme back to the client which wasn't encountered in the input.
@@ -147,13 +223,21 @@ func (l *lexer) errorf(format string, args ...interface{}) stateFn {
 }
 
 const (
-	root             string = "$"
-	dot              string = "."
-	leftBracket      string = "["
-	rightBracket     string = "]"
-	bracketQuote     string = "['"
-	quoteBracket     string = "']"
-	recursiveDescent string = ".."
+	root               string = "$"
+	dot                string = "."
+	leftBracket        string = "["
+	rightBracket       string = "]"
+	bracketQuote       string = "['"
+	quoteBracket       string = "']"
+	bracketFilter      string = "[?("
+	filterBracket      string = ")]"
+	filterOpenBracket  string = "("
+	filterCloseBracket string = ")"
+	filterNot          string = "!"
+	filterAt           string = "@"
+	filterConjunction  string = "&&"
+	filterDisjunction  string = "||"
+	recursiveDescent   string = ".."
 )
 
 func lexPath(l *lexer) stateFn {
@@ -178,7 +262,10 @@ func lexRoot(l *lexer) stateFn {
 }
 
 func lexSubPath(l *lexer) stateFn {
-	if l.empty() {
+	if l.empty() || l.hasPrefix(")") {
+		if l.hasPrefix(")") {
+			return l.pop()
+		}
 		l.emit(lexemeIdentity)
 		l.emit(lexemeEOF)
 		return nil
@@ -209,7 +296,7 @@ func lexSubPath(l *lexer) stateFn {
 		childName := false
 		for {
 			le := l.next()
-			if le == '.' || le == '[' || le == eof {
+			if le == '.' || le == '[' || le == ')' || le == ' ' || le == '&' || le == '|' || le == eof {
 				l.backup()
 				break
 			}
@@ -241,6 +328,14 @@ func lexSubPath(l *lexer) stateFn {
 				return nil
 			}
 			l.emit(lexemeArraySubscript)
+		}
+
+		le := l.peek()
+		if le == ' ' || le == '&' || le == '|' {
+			if l.emptyStack() {
+				return l.errorf("invalid character %q at position %d in subpath, following %q", l.nextChar(), l.pos, l.context())
+			}
+			return l.pop()
 		}
 
 		return lexSubPath
@@ -293,7 +388,122 @@ func lexSubPath(l *lexer) stateFn {
 		return lexSubPath
 	}
 
+	if l.hasPrefix(bracketFilter) {
+		l.next()
+		l.next()
+		l.next()
+		l.emit(lexemeBracketFilter)
+		l.push(lexEndBracketFilter)
+		return lexFilterExprInitial
+	}
+
 	return l.errorf("invalid path syntax")
+}
+
+func lexFilterExprInitial(l *lexer) stateFn {
+	l.stripWhitespace()
+
+	if l.hasPrefix(filterOpenBracket) {
+		l.next()
+		l.emit(lexemeFilterOpenBracket)
+		l.push(lexFilterExpr)
+		return lexFilterExprInitial
+	}
+
+	if l.hasPrefix(filterCloseBracket) && !l.hasPrefix(filterBracket) { // ) which is not part of )]
+		l.next()
+		l.emit(lexemeFilterCloseBracket)
+		return l.pop()
+	}
+
+	if l.hasPrefix(filterNot) {
+		l.next()
+		l.emit(lexemeFilterNot)
+		return lexFilterExprInitial
+	}
+
+	if l.hasPrefix(filterAt) {
+		l.next()
+		l.emit(lexemeFilterAt)
+		l.push(lexFilterExpr)
+		return lexSubPath
+	}
+
+	if l.hasPrefix(root) {
+		l.next()
+		l.emit(lexemeRoot)
+		l.push(lexFilterExpr)
+		return lexSubPath
+	}
+
+	if l.hasPrefix(filterConjunction) {
+		return l.errorf("missing first operand for binary operator &&")
+	}
+
+	if l.hasPrefix(filterDisjunction) {
+		return l.errorf("missing first operand for binary operator ||")
+	}
+
+	return l.pop()
+}
+
+func lexFilterExpr(l *lexer) stateFn {
+	l.stripWhitespace()
+
+	if l.hasPrefix(filterOpenBracket) {
+		l.next()
+		l.emit(lexemeFilterOpenBracket)
+		l.push(lexFilterExpr)
+		return lexFilterExprInitial
+	}
+
+	if l.hasPrefix(filterCloseBracket) && !l.hasPrefix(filterBracket) { // ) which is not part of )]
+		l.next()
+		l.emit(lexemeFilterCloseBracket)
+		return l.pop()
+	}
+
+	if l.hasPrefix(filterNot) {
+		l.next()
+		l.emit(lexemeFilterNot)
+		return lexFilterExprInitial
+	}
+
+	if l.hasPrefix(filterAt) {
+		l.next()
+		l.emit(lexemeFilterAt)
+		l.push(lexFilterExpr)
+		return lexSubPath
+	}
+
+	if l.hasPrefix(filterConjunction) {
+		l.next()
+		l.next()
+		l.emit(lexemeFilterConjunction)
+		l.stripWhitespace()
+		return lexFilterExprInitial
+	}
+
+	if l.hasPrefix(filterDisjunction) {
+		l.next()
+		l.next()
+		l.emit(lexemeFilterDisjunction)
+		l.stripWhitespace()
+		return lexFilterExprInitial
+	}
+
+	return l.pop()
+}
+
+func lexEndBracketFilter(l *lexer) stateFn {
+	if l.hasPrefix(filterBracket) {
+		l.next()
+		l.next()
+		l.emit(lexemeFilterBracket)
+		return lexSubPath
+	}
+
+	return l.errorf("invalid filter syntax: missing %s", filterBracket)
 }
 
 func validateArrayIndex(l *lexer) bool {
