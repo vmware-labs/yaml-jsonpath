@@ -37,7 +37,7 @@ Valid paths are strings conforming to the following BNF syntax.
 <basic filter> ::= <filter existence> |
                    <filter term> == <filter term> |      ; equality
                    <filter term> != <filter term> |      ; inequality
-                   <filter term> > <filter term> |       ; TODO: greater than
+                   <filter term> > <filter term> |       ; greater than
                    <filter term> >= <filter term> |      ; TODO: greater than or equal to
                    <filter term> < <filter term> |       ; TODO: less than
                    <filter term> <= <filter term> |      ; TODO: less than or equal to

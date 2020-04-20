@@ -52,6 +52,7 @@ const (
 	lexemeFilterDisjunction
 	lexemeFilterEquality
 	lexemeFilterInequality
+	lexemeFilterGreaterThan
 	lexemeFilterIntegerLiteral
 	lexemeFilterStringLiteral
 	lexemeEOF // lexing complete
@@ -243,6 +244,7 @@ const (
 	filterDisjunction            string = "||"
 	filterEquality               string = "=="
 	filterInequality             string = "!="
+	filterGreaterThan            string = ">"
 	filterStringLiteralDelimiter string = "'"
 	recursiveDescent             string = ".."
 )
@@ -303,7 +305,7 @@ func lexSubPath(l *lexer) stateFn {
 		childName := false
 		for {
 			le := l.next()
-			if le == '.' || le == '[' || le == ')' || le == ' ' || le == '&' || le == '|' || le == '=' || le == '!' || le == eof {
+			if le == '.' || le == '[' || le == ')' || le == ' ' || le == '&' || le == '|' || le == '=' || le == '!' || le == '>' || le == eof {
 				l.backup()
 				break
 			}
@@ -338,7 +340,7 @@ func lexSubPath(l *lexer) stateFn {
 		}
 
 		le := l.peek()
-		if le == ' ' || le == '&' || le == '|' || le == '=' || le == '!' {
+		if le == ' ' || le == '&' || le == '|' || le == '=' || le == '!' || le == '>' {
 			if l.emptyStack() {
 				return l.errorf("invalid character %q at position %d in subpath, following %q", l.nextChar(), l.pos, l.context())
 			}
@@ -457,6 +459,10 @@ func lexFilterExprInitial(l *lexer) stateFn {
 		return l.pop()
 	}
 
+	if l.hasPrefix(filterInequality) {
+		return l.errorf("missing first operand for binary operator !=")
+	}
+
 	if l.hasPrefix(filterNot) {
 		l.next()
 		l.emit(lexemeFilterNot)
@@ -489,10 +495,9 @@ func lexFilterExprInitial(l *lexer) stateFn {
 		return l.errorf("missing first operand for binary operator ==")
 	}
 
-	// TODO: test drive this
-	// if l.hasPrefix(filterInequality) {
-	// 	return l.errorf("missing first operand for binary operator !=")
-	// }
+	if l.hasPrefix(filterGreaterThan) {
+		return l.errorf("missing first operand for binary operator >")
+	}
 
 	return l.pop()
 }
@@ -552,6 +557,22 @@ func lexFilterExpr(l *lexer) stateFn {
 		l.next()
 		l.next()
 		l.emit(lexemeFilterInequality)
+		l.push(lexFilterExpr)
+		return lexFilterTerm
+	}
+
+	if l.hasPrefix(filterGreaterThan) {
+		if strings.HasPrefix(l.context(), filterStringLiteralDelimiter) {
+			return l.errorf("strings cannot be compared using > at position %d, following %q", l.pos, l.context())
+		}
+		l.next()
+		l.emit(lexemeFilterGreaterThan)
+
+		l.stripWhitespace()
+		if l.hasPrefix(filterStringLiteralDelimiter) {
+			return l.errorf("strings cannot be compared using > at position %d, following %q", l.pos, l.context())
+		}
+
 		l.push(lexFilterExpr)
 		return lexFilterTerm
 	}
