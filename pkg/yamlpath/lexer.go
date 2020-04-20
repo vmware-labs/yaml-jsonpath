@@ -51,6 +51,7 @@ const (
 	lexemeFilterConjunction
 	lexemeFilterDisjunction
 	lexemeFilterEquality
+	lexemeFilterInequality
 	lexemeFilterIntegerLiteral
 	lexemeFilterStringLiteral
 	lexemeEOF // lexing complete
@@ -241,6 +242,7 @@ const (
 	filterConjunction            string = "&&"
 	filterDisjunction            string = "||"
 	filterEquality               string = "=="
+	filterInequality             string = "!="
 	filterStringLiteralDelimiter string = "'"
 	recursiveDescent             string = ".."
 )
@@ -267,10 +269,10 @@ func lexRoot(l *lexer) stateFn {
 }
 
 func lexSubPath(l *lexer) stateFn {
-	if l.empty() || l.hasPrefix(")") {
-		if l.hasPrefix(")") {
-			return l.pop()
-		}
+	if l.hasPrefix(")") {
+		return l.pop()
+	}
+	if l.empty() {
 		l.emit(lexemeIdentity)
 		l.emit(lexemeEOF)
 		return nil
@@ -301,7 +303,7 @@ func lexSubPath(l *lexer) stateFn {
 		childName := false
 		for {
 			le := l.next()
-			if le == '.' || le == '[' || le == ')' || le == ' ' || le == '&' || le == '|' || le == '=' || le == eof {
+			if le == '.' || le == '[' || le == ')' || le == ' ' || le == '&' || le == '|' || le == '=' || le == '!' || le == eof {
 				l.backup()
 				break
 			}
@@ -336,7 +338,7 @@ func lexSubPath(l *lexer) stateFn {
 		}
 
 		le := l.peek()
-		if le == ' ' || le == '&' || le == '|' || le == '=' {
+		if le == ' ' || le == '&' || le == '|' || le == '=' || le == '!' {
 			if l.emptyStack() {
 				return l.errorf("invalid character %q at position %d in subpath, following %q", l.nextChar(), l.pos, l.context())
 			}
@@ -487,6 +489,11 @@ func lexFilterExprInitial(l *lexer) stateFn {
 		return l.errorf("missing first operand for binary operator ==")
 	}
 
+	// TODO: test drive this
+	// if l.hasPrefix(filterInequality) {
+	// 	return l.errorf("missing first operand for binary operator !=")
+	// }
+
 	return l.pop()
 }
 
@@ -537,6 +544,14 @@ func lexFilterExpr(l *lexer) stateFn {
 		l.next()
 		l.next()
 		l.emit(lexemeFilterEquality)
+		l.push(lexFilterExpr)
+		return lexFilterTerm
+	}
+
+	if l.hasPrefix(filterInequality) {
+		l.next()
+		l.next()
+		l.emit(lexemeFilterInequality)
 		l.push(lexFilterExpr)
 		return lexFilterTerm
 	}

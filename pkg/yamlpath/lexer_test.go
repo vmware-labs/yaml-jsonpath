@@ -516,6 +516,20 @@ func TestLexer(t *testing.T) {
 			},
 		},
 		{
+			name: "filter integer inequality, literal on the right",
+			path: "$[?(@.child!=1)]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketFilter, val: "[?("},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeFilterInequality, val: "!="},
+				{typ: lexemeFilterIntegerLiteral, val: "1"},
+				{typ: lexemeFilterBracket, val: ")]"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
 			name: "filter conjunction",
 			path: "$[?(@.child&&@.other)]",
 			expected: []lexeme{
