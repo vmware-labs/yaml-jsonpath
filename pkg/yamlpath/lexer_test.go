@@ -17,6 +17,7 @@ func TestLexer(t *testing.T) {
 		name     string
 		path     string
 		expected []lexeme
+		focus    bool // if true, run only tests with focus set to true
 	}{
 		{
 			name: "identity",
@@ -359,6 +360,17 @@ func TestLexer(t *testing.T) {
 			},
 		},
 		{
+			name: "misplaced filter negation",
+			path: "$[?(@.child !@.other)]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketFilter, val: "[?("},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeError, val: `invalid filter syntax starting at "!" at position 12, following ".child "`},
+			},
+		},
+		{
 			name: "simple negative filter with extra whitespace",
 			path: "$[?( ! @.child)]",
 			expected: []lexeme{
@@ -384,6 +396,126 @@ func TestLexer(t *testing.T) {
 			},
 		},
 		{
+			name: "filter integer equality, literal on the right",
+			path: "$[?(@.child==1)]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketFilter, val: "[?("},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeFilterEquality, val: "=="},
+				{typ: lexemeFilterIntegerLiteral, val: "1"},
+				{typ: lexemeFilterBracket, val: ")]"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "filter integer equality with invalid literal",
+			path: "$[?(@.child==-)]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketFilter, val: "[?("},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeFilterEquality, val: "=="},
+				{typ: lexemeError, val: `invalid integer literal "-"`},
+			},
+		},
+		{
+			name: "filter integer equality, literal on the left",
+			path: "$[?(1==@.child)]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketFilter, val: "[?("},
+				{typ: lexemeFilterIntegerLiteral, val: "1"},
+				{typ: lexemeFilterEquality, val: "=="},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeFilterBracket, val: ")]"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "filter equality with missing left hand value",
+			path: "$[?(==@.child)]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketFilter, val: "[?("},
+				{typ: lexemeError, val: "missing first operand for binary operator =="},
+			},
+		},
+		{
+			name: "filter equality with missing left hand value inside bracket",
+			path: "$[?((==@.child))]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketFilter, val: "[?("},
+				{typ: lexemeFilterOpenBracket, val: "("},
+				{typ: lexemeError, val: "missing first operand for binary operator =="},
+			},
+		},
+		{
+			name: "filter equality with missing right hand value",
+			path: "$[?(@.child==)]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketFilter, val: "[?("},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeFilterEquality, val: "=="},
+				{typ: lexemeError, val: "missing filter term"},
+			},
+		},
+		{
+			name: "filter string equality, literal on the right",
+			path: "$[?(@.child=='x')]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketFilter, val: "[?("},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeFilterEquality, val: "=="},
+				{typ: lexemeFilterStringLiteral, val: "'x'"},
+				{typ: lexemeFilterBracket, val: ")]"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "filter string equality, literal on the left",
+			path: "$[?('x'==@.child)]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketFilter, val: "[?("},
+				{typ: lexemeFilterStringLiteral, val: "'x'"},
+				{typ: lexemeFilterEquality, val: "=="},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeFilterBracket, val: ")]"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "filter string equality, literal on the left with unmatched string delimiter",
+			path: "$[?('x==@.child)]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketFilter, val: "[?("},
+				{typ: lexemeError, val: `unmatched string delimiter "'" at position 4, following "[?("`},
+			},
+		},
+		{
+			name: "filter string equality with unmatched string delimiter",
+			path: "$[?(@.child=='x)]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketFilter, val: "[?("},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeFilterEquality, val: "=="},
+				{typ: lexemeError, val: `unmatched string delimiter "'" at position 13, following "=="`},
+			},
+		},
+		{
 			name: "filter conjunction",
 			path: "$[?(@.child&&@.other)]",
 			expected: []lexeme{
@@ -392,6 +524,25 @@ func TestLexer(t *testing.T) {
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".child"},
 				{typ: lexemeFilterConjunction, val: "&&"},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".other"},
+				{typ: lexemeFilterBracket, val: ")]"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "filter conjunction with literals and whitespace",
+			path: "$[?(@.child == 'x' && -9 == @.other)]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketFilter, val: "[?("},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeFilterEquality, val: "=="},
+				{typ: lexemeFilterStringLiteral, val: "'x'"},
+				{typ: lexemeFilterConjunction, val: "&&"},
+				{typ: lexemeFilterIntegerLiteral, val: "-9"},
+				{typ: lexemeFilterEquality, val: "=="},
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".other"},
 				{typ: lexemeFilterBracket, val: ")]"},
@@ -463,7 +614,18 @@ func TestLexer(t *testing.T) {
 		},
 	}
 
+	focussed := false
 	for _, tc := range cases {
+		if tc.focus {
+			focussed = true
+			break
+		}
+	}
+
+	for _, tc := range cases {
+		if focussed && !tc.focus {
+			continue
+		}
 		t.Run(tc.name, func(t *testing.T) {
 			l := lex("test", tc.path)
 			actual := []lexeme{}
@@ -476,5 +638,9 @@ func TestLexer(t *testing.T) {
 			}
 			require.Equal(t, tc.expected, actual)
 		})
+	}
+
+	if focussed {
+		t.Fatalf("testcase(s) still focussed")
 	}
 }

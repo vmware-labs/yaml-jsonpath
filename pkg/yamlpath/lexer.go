@@ -50,6 +50,9 @@ const (
 	lexemeFilterAt
 	lexemeFilterConjunction
 	lexemeFilterDisjunction
+	lexemeFilterEquality
+	lexemeFilterIntegerLiteral
+	lexemeFilterStringLiteral
 	lexemeEOF // lexing complete
 )
 
@@ -223,21 +226,23 @@ func (l *lexer) errorf(format string, args ...interface{}) stateFn {
 }
 
 const (
-	root               string = "$"
-	dot                string = "."
-	leftBracket        string = "["
-	rightBracket       string = "]"
-	bracketQuote       string = "['"
-	quoteBracket       string = "']"
-	bracketFilter      string = "[?("
-	filterBracket      string = ")]"
-	filterOpenBracket  string = "("
-	filterCloseBracket string = ")"
-	filterNot          string = "!"
-	filterAt           string = "@"
-	filterConjunction  string = "&&"
-	filterDisjunction  string = "||"
-	recursiveDescent   string = ".."
+	root                         string = "$"
+	dot                          string = "."
+	leftBracket                  string = "["
+	rightBracket                 string = "]"
+	bracketQuote                 string = "['"
+	quoteBracket                 string = "']"
+	bracketFilter                string = "[?("
+	filterBracket                string = ")]"
+	filterOpenBracket            string = "("
+	filterCloseBracket           string = ")"
+	filterNot                    string = "!"
+	filterAt                     string = "@"
+	filterConjunction            string = "&&"
+	filterDisjunction            string = "||"
+	filterEquality               string = "=="
+	filterStringLiteralDelimiter string = "'"
+	recursiveDescent             string = ".."
 )
 
 func lexPath(l *lexer) stateFn {
@@ -296,7 +301,7 @@ func lexSubPath(l *lexer) stateFn {
 		childName := false
 		for {
 			le := l.next()
-			if le == '.' || le == '[' || le == ')' || le == ' ' || le == '&' || le == '|' || le == eof {
+			if le == '.' || le == '[' || le == ')' || le == ' ' || le == '&' || le == '|' || le == '=' || le == eof {
 				l.backup()
 				break
 			}
@@ -331,7 +336,7 @@ func lexSubPath(l *lexer) stateFn {
 		}
 
 		le := l.peek()
-		if le == ' ' || le == '&' || le == '|' {
+		if le == ' ' || le == '&' || le == '|' || le == '=' {
 			if l.emptyStack() {
 				return l.errorf("invalid character %q at position %d in subpath, following %q", l.nextChar(), l.pos, l.context())
 			}
@@ -403,6 +408,40 @@ func lexSubPath(l *lexer) stateFn {
 func lexFilterExprInitial(l *lexer) stateFn {
 	l.stripWhitespace()
 
+	if l.hasPrefix("-") || l.hasPrefix("0") || l.hasPrefix("1") || l.hasPrefix("2") || l.hasPrefix("3") || l.hasPrefix("4") || l.hasPrefix("5") ||
+		l.hasPrefix("6") || l.hasPrefix("7") || l.hasPrefix("8") || l.hasPrefix("9") {
+		for {
+			l.next()
+			if !(l.hasPrefix("0") || l.hasPrefix("1") || l.hasPrefix("2") || l.hasPrefix("3") || l.hasPrefix("4") || l.hasPrefix("5") ||
+				l.hasPrefix("6") || l.hasPrefix("7") || l.hasPrefix("8") || l.hasPrefix("9")) {
+				break
+			}
+		}
+		// validate integer
+		if _, err := strconv.Atoi(l.value()); err != nil {
+			return l.errorf("invalid integer literal %q", l.value())
+		}
+		l.emit(lexemeFilterIntegerLiteral)
+		return lexFilterExpr
+	}
+
+	if l.hasPrefix(filterStringLiteralDelimiter) {
+		pos := l.pos
+		context := l.context()
+		for {
+			if l.next() == eof {
+				return l.errorf(`unmatched string delimiter "'" at position %d, following %q`, pos, context)
+			}
+			if l.hasPrefix(filterStringLiteralDelimiter) {
+				break
+			}
+		}
+		l.next()
+		l.emit(lexemeFilterStringLiteral)
+
+		return lexFilterExpr
+	}
+
 	if l.hasPrefix(filterOpenBracket) {
 		l.next()
 		l.emit(lexemeFilterOpenBracket)
@@ -444,11 +483,19 @@ func lexFilterExprInitial(l *lexer) stateFn {
 		return l.errorf("missing first operand for binary operator ||")
 	}
 
+	if l.hasPrefix(filterEquality) {
+		return l.errorf("missing first operand for binary operator ==")
+	}
+
 	return l.pop()
 }
 
 func lexFilterExpr(l *lexer) stateFn {
 	l.stripWhitespace()
+
+	if l.hasPrefix(filterBracket) {
+		return l.pop()
+	}
 
 	if l.hasPrefix(filterOpenBracket) {
 		l.next()
@@ -457,16 +504,10 @@ func lexFilterExpr(l *lexer) stateFn {
 		return lexFilterExprInitial
 	}
 
-	if l.hasPrefix(filterCloseBracket) && !l.hasPrefix(filterBracket) { // ) which is not part of )]
+	if l.hasPrefix(filterCloseBracket) {
 		l.next()
 		l.emit(lexemeFilterCloseBracket)
 		return l.pop()
-	}
-
-	if l.hasPrefix(filterNot) {
-		l.next()
-		l.emit(lexemeFilterNot)
-		return lexFilterExprInitial
 	}
 
 	if l.hasPrefix(filterAt) {
@@ -492,7 +533,67 @@ func lexFilterExpr(l *lexer) stateFn {
 		return lexFilterExprInitial
 	}
 
-	return l.pop()
+	if l.hasPrefix(filterEquality) {
+		l.next()
+		l.next()
+		l.emit(lexemeFilterEquality)
+		l.push(lexFilterExpr)
+		return lexFilterTerm
+	}
+
+	return l.errorf("invalid filter syntax starting at %q at position %d, following %q", l.nextChar(), l.pos, l.context())
+}
+
+func lexFilterTerm(l *lexer) stateFn {
+	l.stripWhitespace()
+
+	if l.hasPrefix(filterAt) {
+		l.next()
+		l.emit(lexemeFilterAt)
+		return lexSubPath
+	}
+
+	if l.hasPrefix("-") || l.hasPrefix("0") || l.hasPrefix("1") || l.hasPrefix("2") || l.hasPrefix("3") || l.hasPrefix("4") || l.hasPrefix("5") ||
+		l.hasPrefix("6") || l.hasPrefix("7") || l.hasPrefix("8") || l.hasPrefix("9") {
+		for {
+			l.next()
+			if !(l.hasPrefix("0") || l.hasPrefix("1") || l.hasPrefix("2") || l.hasPrefix("3") || l.hasPrefix("4") || l.hasPrefix("5") ||
+				l.hasPrefix("6") || l.hasPrefix("7") || l.hasPrefix("8") || l.hasPrefix("9")) {
+				break
+			}
+		}
+		// validate integer
+		if _, err := strconv.Atoi(l.value()); err != nil {
+			return l.errorf("invalid integer literal %q", l.value())
+		}
+		l.emit(lexemeFilterIntegerLiteral)
+		l.stripWhitespace()
+
+		return lexFilterExpr
+	}
+
+	if l.hasPrefix(filterStringLiteralDelimiter) {
+		pos := l.pos
+		context := l.context()
+		for {
+			if l.next() == eof {
+				return l.errorf(`unmatched string delimiter "'" at position %d, following %q`, pos, context)
+			}
+			if l.hasPrefix(filterStringLiteralDelimiter) {
+				break
+			}
+		}
+		l.next()
+		l.emit(lexemeFilterStringLiteral)
+
+		return lexFilterExpr
+	}
+
+	if l.hasPrefix(filterBracket) || l.hasPrefix(filterCloseBracket) {
+		return l.errorf("missing filter term")
+	}
+
+	return l.errorf("invalid filter term")
 }
 
 func lexEndBracketFilter(l *lexer) stateFn {

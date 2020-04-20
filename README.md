@@ -34,16 +34,22 @@ Valid paths are strings conforming to the following BNF syntax.
                    <filter expr> && <filter expr> |      ; conjunction (binds more tightly than ||)
                    <filter expr> || <filter expr> |      ; disjunction
                    <basic filter>
-<basic filter> ::= <filter term> |                       ; filter term existence
+<basic filter> ::= <filter existence> |
                    <filter term> == <filter term> |      ; equality
                    <filter term> != <filter term> |      ; inequality
                    <filter term> > <filter term> |       ; greater than
                    <filter term> >= <filter term> |      ; greater than or equal to
                    <filter term> < <filter term> |       ; less than
+                   <filter term> <= <filter term> |      ; less than or equal to
                    <filter term> =~ <regular expr>       ; matches regular expression
 <filter term> ::= "@" <subpath> |                        ; item relative to element being processed
                   "$" <subpath>                          ; item relative to root node of a document
+                  <filter literal>
+<filter existence> ::= "@" <subpath>                     ; item, relative to element being processed, exists
+                       "$" <subpath>                     ; item, relative to root node of a document, exists
 <regular expr> := "/" <string> "/"                       ; regular expression <<<<<<<<< WIP
+<filter literal> ::= <integer> |                         ; positive or negative decimal integer
+                     "'" <string without '> "'"          ; string enclosed in single quotes
 ```
 
 The `NewPath` function parses a string path and returns a corresponding value of the `Path` type and
