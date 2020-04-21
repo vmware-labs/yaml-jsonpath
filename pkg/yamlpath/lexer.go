@@ -54,6 +54,7 @@ const (
 	lexemeFilterInequality
 	lexemeFilterGreaterThan
 	lexemeFilterIntegerLiteral
+	lexemeFilterFloatLiteral
 	lexemeFilterStringLiteral
 	lexemeEOF // lexing complete
 )
@@ -275,6 +276,9 @@ func lexSubPath(l *lexer) stateFn {
 		return l.pop()
 	}
 	if l.empty() {
+		if !l.emptyStack() {
+			return l.pop()
+		}
 		l.emit(lexemeIdentity)
 		l.emit(lexemeEOF)
 		return nil
@@ -316,7 +320,7 @@ func lexSubPath(l *lexer) stateFn {
 		}
 		l.emit(lexemeDotChild)
 
-		if l.hasPrefix(leftBracket) && !l.hasPrefix(bracketQuote) {
+		if l.hasPrefix(leftBracket) && !l.hasPrefix(bracketQuote) && !l.hasPrefix(bracketFilter) {
 			l.next()
 			subscript := false
 			for {
@@ -371,7 +375,7 @@ func lexSubPath(l *lexer) stateFn {
 		}
 		l.emit(lexemeBracketChild)
 
-		if l.hasPrefix(leftBracket) && !l.hasPrefix(bracketQuote) {
+		if l.hasPrefix(leftBracket) && !l.hasPrefix(bracketQuote) && !l.hasPrefix(bracketFilter) {
 			l.next()
 			subscript := false
 			for {
@@ -412,11 +416,11 @@ func lexSubPath(l *lexer) stateFn {
 func lexFilterExprInitial(l *lexer) stateFn {
 	l.stripWhitespace()
 
-	if nextState, ok := lexIntegerLiteral(l, lexFilterExpr); ok {
+	if nextState, present := lexNumericLiteral(l, lexFilterExpr); present {
 		return nextState
 	}
 
-	if nextState, ok := lexStringLiteral(l, lexFilterExpr); ok {
+	if nextState, present := lexStringLiteral(l, lexFilterExpr); present {
 		return nextState
 	}
 
@@ -478,6 +482,10 @@ func lexFilterExprInitial(l *lexer) stateFn {
 
 func lexFilterExpr(l *lexer) stateFn {
 	l.stripWhitespace()
+
+	if l.empty() {
+		return l.errorf("missing end of filter at position %d, following %q", l.pos, l.context())
+	}
 
 	if l.hasPrefix(filterBracket) {
 		return l.pop()
@@ -563,11 +571,11 @@ func lexFilterTerm(l *lexer) stateFn {
 		return lexSubPath
 	}
 
-	if nextState, ok := lexIntegerLiteral(l, lexFilterExpr); ok {
+	if nextState, present := lexNumericLiteral(l, lexFilterExpr); present {
 		return nextState
 	}
 
-	if nextState, ok := lexStringLiteral(l, lexFilterExpr); ok {
+	if nextState, present := lexStringLiteral(l, lexFilterExpr); present {
 		return nextState
 	}
 
@@ -610,15 +618,29 @@ func validateArrayIndex(l *lexer) bool {
 	return true
 }
 
-func lexIntegerLiteral(l *lexer, nextState stateFn) (stateFn, bool) {
-	if l.hasPrefix("-") || l.hasPrefix("0") || l.hasPrefix("1") || l.hasPrefix("2") || l.hasPrefix("3") || l.hasPrefix("4") || l.hasPrefix("5") ||
-		l.hasPrefix("6") || l.hasPrefix("7") || l.hasPrefix("8") || l.hasPrefix("9") {
+func lexNumericLiteral(l *lexer, nextState stateFn) (stateFn, bool) {
+	n := l.peek()
+	if n == '.' || n == '-' || (n >= '0' && n <= '9') {
+		float := n == '.'
 		for {
 			l.next()
-			if !(l.hasPrefix("0") || l.hasPrefix("1") || l.hasPrefix("2") || l.hasPrefix("3") || l.hasPrefix("4") || l.hasPrefix("5") ||
-				l.hasPrefix("6") || l.hasPrefix("7") || l.hasPrefix("8") || l.hasPrefix("9")) {
+			n := l.peek()
+			if n == '.' {
+				float = true
+				continue
+			}
+			if !(n >= '0' && n <= '9') {
 				break
 			}
+		}
+		if float {
+			// validate float
+			if _, err := strconv.ParseFloat(l.value(), 64); err != nil {
+				err := err.(*strconv.NumError)
+				return l.errorf("invalid float literal %q: %s", err.Num, err.Unwrap()), true
+			}
+			l.emit(lexemeFilterFloatLiteral)
+			return lexFilterExpr, true
 		}
 		// validate integer
 		if _, err := strconv.Atoi(l.value()); err != nil {

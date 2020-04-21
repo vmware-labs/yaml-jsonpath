@@ -448,6 +448,20 @@ func TestLexer(t *testing.T) {
 			},
 		},
 		{
+			name: "filter float equality, literal on the left",
+			path: "$[?(1.5==@.child)]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketFilter, val: "[?("},
+				{typ: lexemeFilterFloatLiteral, val: "1.5"},
+				{typ: lexemeFilterEquality, val: "=="},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeFilterBracket, val: ")]"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
 			name: "filter equality with missing left hand value",
 			path: "$[?(==@.child)]",
 			expected: []lexeme{
@@ -572,6 +586,20 @@ func TestLexer(t *testing.T) {
 				{typ: lexemeDotChild, val: ".child"},
 				{typ: lexemeFilterGreaterThan, val: ">"},
 				{typ: lexemeFilterIntegerLiteral, val: "1"},
+				{typ: lexemeFilterBracket, val: ")]"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "filter greater than, literal on the right",
+			path: "$[?(@.child> 1.5)]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketFilter, val: "[?("},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeFilterGreaterThan, val: ">"},
+				{typ: lexemeFilterFloatLiteral, val: "1.5"},
 				{typ: lexemeFilterBracket, val: ")]"},
 				{typ: lexemeIdentity, val: ""},
 			},
@@ -714,6 +742,30 @@ func TestLexer(t *testing.T) {
 				{typ: lexemeDotChild, val: ".other"},
 				{typ: lexemeFilterBracket, val: ")]"},
 				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "simple filter of child",
+			path: "$.child[?(@.child)]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeBracketFilter, val: "[?("},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeFilterBracket, val: ")]"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "filter with missing end",
+			path: "$[?(@.child",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketFilter, val: "[?("},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeError, val: `missing end of filter at position 11, following ".child"`},
 			},
 		},
 	}

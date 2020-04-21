@@ -29,19 +29,18 @@ Valid paths are strings conforming to the following BNF syntax.
             <integer> ":" <integer> ":" <integer>        ; start (inclusive) to end (exclusive) by step
 
 <filter> ::= "?(" <filter expr> ")"
-<filter expr> ::= "(" <filter expr> ")" |                ; bracketing (binds more tightly than !, &&, and ||)
-                   "!" <filter expr> |                   ; negation (binds more tightly than && and ||)
-                   <filter expr> && <filter expr> |      ; conjunction (binds more tightly than ||)
-                   <filter expr> || <filter expr> |      ; disjunction
-                   <basic filter>
+<filter expr> ::= <filter conjunction> [ "||" <filter conjunction ]* ; disjunction
+<filter conjunction> := <basic filter> [ "&&" <basic filter> ]* ; conjunction (binds more tightly than ||)
 <basic filter> ::= <filter existence> |
+                   "!" <filter existence> |              ; TODO: negation (should this apply to brackets too?)
                    <filter term> == <filter term> |      ; equality
                    <filter term> != <filter term> |      ; inequality
-                   <filter term> > <filter term> |       ; integer greater than
-                   <filter term> >= <filter term> |      ; TODO: integer greater than or equal to
-                   <filter term> < <filter term> |       ; TODO: integer less than
-                   <filter term> <= <filter term> |      ; TODO: integer less than or equal to
-                   <filter term> =~ <regular expr>       ; TODO: matches regular expression
+                   <filter term> > <filter term> |       ; numeric greater than
+                   <filter term> >= <filter term> |      ; TODO: numeric greater than or equal to
+                   <filter term> < <filter term> |       ; TODO: numeric less than
+                   <filter term> <= <filter term> |      ; TODO: numeric less than or equal to
+                   <filter term> =~ <regular expr>  |    ; TODO: matches regular expression
+                   "(" <filter expr> ")"                 ; TODO: bracketing
 <filter term> ::= "@" <subpath> |                        ; item relative to element being processed
                   "$" <subpath>                          ; item relative to root node of a document
                   <filter literal>
@@ -49,6 +48,7 @@ Valid paths are strings conforming to the following BNF syntax.
                        "$" <subpath>                     ; item, relative to root node of a document, exists
 <regular expr> := "/" <string> "/"                       ; regular expression <<<<<<<<< TBD
 <filter literal> ::= <integer> |                         ; positive or negative decimal integer
+                     <floating point number> |           ; floating point number
                      "'" <string without '> "'"          ; string enclosed in single quotes
 ```
 

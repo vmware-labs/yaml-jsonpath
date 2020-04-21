@@ -53,6 +53,7 @@ store:
 		path            string
 		expectedStrings []string
 		expectedPathErr string
+		focus           bool // if true, run only tests with focus set to true
 	}{
 		{
 			name: "identity",
@@ -683,9 +684,44 @@ price: 22.99
 `},
 			expectedPathErr: "",
 		},
+		{
+			focus: true,
+			name:  "filter",
+			path:  "$.store.book[?(@.price > 8.98)]",
+			expectedStrings: []string{
+				`category: fiction
+author: Evelyn Waugh
+title: Sword of Honour
+price: 12.99
+`,
+				`category: fiction
+author: Herman Melville
+title: Moby Dick
+isbn: 0-553-21311-3
+price: 8.99
+`,
+				`category: fiction
+author: J. R. R. Tolkien
+title: The Lord of the Rings
+isbn: 0-395-19395-8
+price: 22.99
+`},
+			expectedPathErr: "",
+		},
+	}
+
+	focussed := false
+	for _, tc := range cases {
+		if tc.focus {
+			focussed = true
+			break
+		}
 	}
 
 	for _, tc := range cases {
+		if focussed && !tc.focus {
+			continue
+		}
 		t.Run(tc.name, func(t *testing.T) {
 			p, err := yamlpath.NewPath(tc.path)
 			if tc.expectedPathErr == "" {
@@ -711,5 +747,9 @@ price: 22.99
 
 			require.Equal(t, tc.expectedStrings, actualStrings)
 		})
+	}
+
+	if focussed {
+		t.Fatalf("testcase(s) still focussed")
 	}
 }

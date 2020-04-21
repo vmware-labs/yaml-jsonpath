@@ -30,12 +30,12 @@ func NewPath(path string) (*Path, error) {
 }
 
 func newPath(l *lexer) (*Path, error) {
-	lexeme := l.nextLexeme()
+	lx := l.nextLexeme()
 
-	switch lexeme.typ {
+	switch lx.typ {
 
 	case lexemeError:
-		return nil, errors.New(lexeme.val)
+		return nil, errors.New(lx.val)
 
 	case lexemeIdentity, lexemeEOF:
 		return new(identity), nil
@@ -57,7 +57,7 @@ func newPath(l *lexer) (*Path, error) {
 		if err != nil {
 			return new(empty), err
 		}
-		childName := strings.TrimPrefix(lexeme.val, "..")
+		childName := strings.TrimPrefix(lx.val, "..")
 		if childName == "*" { // includes all nodes, not just mapping nodes
 			return new(func(node *yaml.Node) yit.Iterator {
 				return compose(yit.FromNode(node).RecurseNodes(), subPath)
@@ -72,7 +72,7 @@ func newPath(l *lexer) (*Path, error) {
 		if err != nil {
 			return new(empty), err
 		}
-		childName := strings.TrimPrefix(lexeme.val, ".")
+		childName := strings.TrimPrefix(lx.val, ".")
 		return childThen(childName, subPath), nil
 
 	case lexemeBracketChild:
@@ -80,7 +80,7 @@ func newPath(l *lexer) (*Path, error) {
 		if err != nil {
 			return new(empty), err
 		}
-		childNames := strings.TrimSuffix(strings.TrimPrefix(lexeme.val, "['"), "']")
+		childNames := strings.TrimSuffix(strings.TrimPrefix(lx.val, "['"), "']")
 		return childrenThen(childNames, subPath), nil
 
 	case lexemeArraySubscript:
@@ -88,8 +88,29 @@ func newPath(l *lexer) (*Path, error) {
 		if err != nil {
 			return new(empty), err
 		}
-		subscript := strings.TrimSuffix(strings.TrimPrefix(lexeme.val, "["), "]")
+		subscript := strings.TrimSuffix(strings.TrimPrefix(lx.val, "["), "]")
 		return arraySubscriptThen(subscript, subPath), nil
+
+	case lexemeBracketFilter:
+		filterLexemes := []lexeme{}
+	f:
+		for {
+			lx := l.nextLexeme()
+			switch lx.typ {
+			case lexemeFilterBracket:
+				break f
+			case lexemeEOF:
+				// should never happen as lexer should have detected an error
+				return new(empty), errors.New("missing end of filter")
+			}
+			filterLexemes = append(filterLexemes, lx)
+		}
+
+		subPath, err := newPath(l)
+		if err != nil {
+			return new(empty), err
+		}
+		return filterThen(filterLexemes, subPath), nil
 	}
 
 	return new(empty), errors.New("invalid path syntax")
@@ -171,4 +192,27 @@ func arraySubscriptThen(subscript string, p *Path) *Path {
 		}
 		return yit.FromIterators(its...)
 	})
+}
+
+func filterThen(filterLexemes []lexeme, p *Path) *Path {
+	filter := parseFilter(filterLexemes)
+	return new(func(node *yaml.Node) yit.Iterator {
+		if node.Kind != yaml.SequenceNode {
+			panic("not implemented")
+		}
+
+		its := []yit.Iterator{}
+		for _, c := range node.Content {
+			if filter(c) {
+				its = append(its, compose(yit.FromNode(c), p))
+			}
+		}
+		return yit.FromIterators(its...)
+	})
+}
+
+func parseFilter(filterLexemes []lexeme) func(*yaml.Node) bool {
+	return func(*yaml.Node) bool {
+		return true
+	}
 }
