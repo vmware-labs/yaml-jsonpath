@@ -418,7 +418,19 @@ func TestLexer(t *testing.T) {
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".child"},
 				{typ: lexemeFilterEquality, val: "=="},
-				{typ: lexemeError, val: `invalid integer literal "-"`},
+				{typ: lexemeError, val: `invalid integer literal "-": invalid syntax`},
+			},
+		},
+		{
+			name: "filter integer equality with integer literal which is too large",
+			path: "$[?(@.child==9223372036854775808)]", // 2**63, too large for signed 64-bit integer
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketFilter, val: "[?("},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeFilterEquality, val: "=="},
+				{typ: lexemeError, val: `invalid integer literal "9223372036854775808": value out of range`},
 			},
 		},
 		{

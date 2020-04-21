@@ -412,38 +412,12 @@ func lexSubPath(l *lexer) stateFn {
 func lexFilterExprInitial(l *lexer) stateFn {
 	l.stripWhitespace()
 
-	if l.hasPrefix("-") || l.hasPrefix("0") || l.hasPrefix("1") || l.hasPrefix("2") || l.hasPrefix("3") || l.hasPrefix("4") || l.hasPrefix("5") ||
-		l.hasPrefix("6") || l.hasPrefix("7") || l.hasPrefix("8") || l.hasPrefix("9") {
-		for {
-			l.next()
-			if !(l.hasPrefix("0") || l.hasPrefix("1") || l.hasPrefix("2") || l.hasPrefix("3") || l.hasPrefix("4") || l.hasPrefix("5") ||
-				l.hasPrefix("6") || l.hasPrefix("7") || l.hasPrefix("8") || l.hasPrefix("9")) {
-				break
-			}
-		}
-		// validate integer
-		if _, err := strconv.Atoi(l.value()); err != nil {
-			return l.errorf("invalid integer literal %q", l.value())
-		}
-		l.emit(lexemeFilterIntegerLiteral)
-		return lexFilterExpr
+	if nextState, ok := lexIntegerLiteral(l, lexFilterExpr); ok {
+		return nextState
 	}
 
-	if l.hasPrefix(filterStringLiteralDelimiter) {
-		pos := l.pos
-		context := l.context()
-		for {
-			if l.next() == eof {
-				return l.errorf(`unmatched string delimiter "'" at position %d, following %q`, pos, context)
-			}
-			if l.hasPrefix(filterStringLiteralDelimiter) {
-				break
-			}
-		}
-		l.next()
-		l.emit(lexemeFilterStringLiteral)
-
-		return lexFilterExpr
+	if nextState, ok := lexStringLiteral(l, lexFilterExpr); ok {
+		return nextState
 	}
 
 	if l.hasPrefix(filterOpenBracket) {
@@ -589,40 +563,12 @@ func lexFilterTerm(l *lexer) stateFn {
 		return lexSubPath
 	}
 
-	if l.hasPrefix("-") || l.hasPrefix("0") || l.hasPrefix("1") || l.hasPrefix("2") || l.hasPrefix("3") || l.hasPrefix("4") || l.hasPrefix("5") ||
-		l.hasPrefix("6") || l.hasPrefix("7") || l.hasPrefix("8") || l.hasPrefix("9") {
-		for {
-			l.next()
-			if !(l.hasPrefix("0") || l.hasPrefix("1") || l.hasPrefix("2") || l.hasPrefix("3") || l.hasPrefix("4") || l.hasPrefix("5") ||
-				l.hasPrefix("6") || l.hasPrefix("7") || l.hasPrefix("8") || l.hasPrefix("9")) {
-				break
-			}
-		}
-		// validate integer
-		if _, err := strconv.Atoi(l.value()); err != nil {
-			return l.errorf("invalid integer literal %q", l.value())
-		}
-		l.emit(lexemeFilterIntegerLiteral)
-		l.stripWhitespace()
-
-		return lexFilterExpr
+	if nextState, ok := lexIntegerLiteral(l, lexFilterExpr); ok {
+		return nextState
 	}
 
-	if l.hasPrefix(filterStringLiteralDelimiter) {
-		pos := l.pos
-		context := l.context()
-		for {
-			if l.next() == eof {
-				return l.errorf(`unmatched string delimiter "'" at position %d, following %q`, pos, context)
-			}
-			if l.hasPrefix(filterStringLiteralDelimiter) {
-				break
-			}
-		}
-		l.next()
-		l.emit(lexemeFilterStringLiteral)
-
-		return lexFilterExpr
+	if nextState, ok := lexStringLiteral(l, lexFilterExpr); ok {
+		return nextState
 	}
 
 	if l.hasPrefix(filterBracket) || l.hasPrefix(filterCloseBracket) {
@@ -662,4 +608,45 @@ func validateArrayIndex(l *lexer) bool {
 		}
 	}
 	return true
+}
+
+func lexIntegerLiteral(l *lexer, nextState stateFn) (stateFn, bool) {
+	if l.hasPrefix("-") || l.hasPrefix("0") || l.hasPrefix("1") || l.hasPrefix("2") || l.hasPrefix("3") || l.hasPrefix("4") || l.hasPrefix("5") ||
+		l.hasPrefix("6") || l.hasPrefix("7") || l.hasPrefix("8") || l.hasPrefix("9") {
+		for {
+			l.next()
+			if !(l.hasPrefix("0") || l.hasPrefix("1") || l.hasPrefix("2") || l.hasPrefix("3") || l.hasPrefix("4") || l.hasPrefix("5") ||
+				l.hasPrefix("6") || l.hasPrefix("7") || l.hasPrefix("8") || l.hasPrefix("9")) {
+				break
+			}
+		}
+		// validate integer
+		if _, err := strconv.Atoi(l.value()); err != nil {
+			err := err.(*strconv.NumError)
+			return l.errorf("invalid integer literal %q: %s", err.Num, err.Unwrap()), true
+		}
+		l.emit(lexemeFilterIntegerLiteral)
+		return lexFilterExpr, true
+	}
+	return nil, false
+}
+
+func lexStringLiteral(l *lexer, nextState stateFn) (stateFn, bool) {
+	if l.hasPrefix(filterStringLiteralDelimiter) {
+		pos := l.pos
+		context := l.context()
+		for {
+			if l.next() == eof {
+				return l.errorf(`unmatched string delimiter "'" at position %d, following %q`, pos, context), true
+			}
+			if l.hasPrefix(filterStringLiteralDelimiter) {
+				break
+			}
+		}
+		l.next()
+		l.emit(lexemeFilterStringLiteral)
+
+		return nextState, true
+	}
+	return nil, false
 }
