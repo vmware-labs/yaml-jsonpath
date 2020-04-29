@@ -53,6 +53,7 @@ const (
 	lexemeFilterEquality
 	lexemeFilterInequality
 	lexemeFilterGreaterThan
+	lexemeFilterGreaterThanOrEqual
 	lexemeFilterIntegerLiteral
 	lexemeFilterFloatLiteral
 	lexemeFilterStringLiteral
@@ -246,6 +247,7 @@ const (
 	filterEquality               string = "=="
 	filterInequality             string = "!="
 	filterGreaterThan            string = ">"
+	filterGreaterThanOrEqual     string = ">="
 	filterStringLiteralDelimiter string = "'"
 	recursiveDescent             string = ".."
 )
@@ -473,6 +475,10 @@ func lexFilterExprInitial(l *lexer) stateFn {
 		return l.errorf("missing first operand for binary operator ==")
 	}
 
+	if l.hasPrefix(filterGreaterThanOrEqual) {
+		return l.errorf("missing first operand for binary operator >=")
+	}
+
 	if l.hasPrefix(filterGreaterThan) {
 		return l.errorf("missing first operand for binary operator >")
 	}
@@ -539,6 +545,23 @@ func lexFilterExpr(l *lexer) stateFn {
 		l.next()
 		l.next()
 		l.emit(lexemeFilterInequality)
+		l.push(lexFilterExpr)
+		return lexFilterTerm
+	}
+
+	if l.hasPrefix(filterGreaterThanOrEqual) {
+		if strings.HasPrefix(l.context(), filterStringLiteralDelimiter) {
+			return l.errorf("strings cannot be compared using >= at position %d, following %q", l.pos, l.context())
+		}
+		l.next()
+		l.next()
+		l.emit(lexemeFilterGreaterThanOrEqual)
+
+		l.stripWhitespace()
+		if l.hasPrefix(filterStringLiteralDelimiter) {
+			return l.errorf("strings cannot be compared using >= at position %d, following %q", l.pos, l.context())
+		}
+
 		l.push(lexFilterExpr)
 		return lexFilterTerm
 	}

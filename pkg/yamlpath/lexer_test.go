@@ -648,6 +648,77 @@ func TestLexer(t *testing.T) {
 			},
 		},
 		{
+			name: "filter greater than or equal, literal on the right",
+			path: "$[?(@.child>=1)]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketFilter, val: "[?("},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeFilterGreaterThanOrEqual, val: ">="},
+				{typ: lexemeFilterIntegerLiteral, val: "1"},
+				{typ: lexemeFilterBracket, val: ")]"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "filter greater than or equal, literal on the right",
+			path: "$[?(@.child>=1.5)]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketFilter, val: "[?("},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeFilterGreaterThanOrEqual, val: ">="},
+				{typ: lexemeFilterFloatLiteral, val: "1.5"},
+				{typ: lexemeFilterBracket, val: ")]"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "filter greater than or equal with left hand operand missing",
+			path: "$[?(>=1)]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketFilter, val: "[?("},
+				{typ: lexemeError, val: "missing first operand for binary operator >="},
+			},
+		},
+		{
+			name: "filter greater than with missing right hand value",
+			path: "$[?(@.child>=)]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketFilter, val: "[?("},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeFilterGreaterThanOrEqual, val: ">="},
+				{typ: lexemeError, val: "missing filter term"},
+			},
+		},
+		{
+			name: "filter greater than or equal, string on the right",
+			path: "$[?(@.child>='x')]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketFilter, val: "[?("},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeFilterGreaterThanOrEqual, val: ">="},
+				{typ: lexemeError, val: `strings cannot be compared using >= at position 13, following ">="`},
+			},
+		},
+		{
+			name: "filter greater than or equal, string on the left",
+			path: "$[?('x'>=@.child)]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketFilter, val: "[?("},
+				{typ: lexemeFilterStringLiteral, val: "'x'"},
+				{typ: lexemeError, val: `strings cannot be compared using >= at position 7, following "'x'"`},
+			},
+		},
+		{
 			name: "filter conjunction",
 			path: "$[?(@.child&&@.other)]",
 			expected: []lexeme{
