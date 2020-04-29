@@ -46,10 +46,10 @@ func newPath(l *lexer) (*Path, error) {
 			return new(empty), err
 		}
 		return new(func(node *yaml.Node) yit.Iterator {
-			if node.Kind != yaml.DocumentNode {
-				return empty(node)
+			if node.Kind == yaml.DocumentNode {
+				node = node.Content[0]
 			}
-			return compose(yit.FromNode(node.Content[0]), subPath)
+			return compose(yit.FromNode(node), subPath)
 		}), nil
 
 	case lexemeRecursiveDescent:
@@ -212,7 +212,5 @@ func filterThen(filterLexemes []lexeme, p *Path) *Path {
 }
 
 func parseFilter(filterLexemes []lexeme) func(*yaml.Node) bool {
-	return func(*yaml.Node) bool {
-		return true
-	}
+	return newFilter(newFilterNode(filterLexemes))
 }

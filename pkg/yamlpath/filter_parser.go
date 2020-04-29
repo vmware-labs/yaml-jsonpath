@@ -86,11 +86,11 @@ func (n *filterNode) indentedString(indent int) string {
 	i := strings.Repeat("    ", indent)
 	s := n.lexeme.val
 	for _, l := range n.subpath {
-		s = s + l.val
+		s += l.val
 	}
 	c := ""
 	for _, child := range n.children {
-		c = c + "\n" + child.indentedString(indent+1)
+		c += "\n" + child.indentedString(indent+1)
 	}
 	return fmt.Sprintf("%s%s%s", i, s, c)
 }
@@ -126,11 +126,6 @@ func (p *parser) pop() *filterNode {
 	element := p.stack[index]
 	p.stack = p.stack[:index]
 	return element
-}
-
-// empty returns true if and onl if the stack of state functions is empty.
-func (p *parser) emptyStack() bool {
-	return len(p.stack) == 0
 }
 
 // nextLexeme returns the next item from the input.

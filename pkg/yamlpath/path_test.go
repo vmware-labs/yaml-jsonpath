@@ -685,9 +685,8 @@ price: 22.99
 			expectedPathErr: "",
 		},
 		{
-			focus: true,
-			name:  "filter",
-			path:  "$.store.book[?(@.price > 8.98)]",
+			name: "filter >",
+			path: "$.store.book[?(@.price > 8.98)]",
 			expectedStrings: []string{
 				`category: fiction
 author: Evelyn Waugh
@@ -705,6 +704,28 @@ author: J. R. R. Tolkien
 title: The Lord of the Rings
 isbn: 0-395-19395-8
 price: 22.99
+`},
+			expectedPathErr: "",
+		},
+		{
+			name: "filter ==",
+			path: "$.store.book[?(@.category == 'reference')]",
+			expectedStrings: []string{
+				`category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
+`},
+			expectedPathErr: "",
+		},
+		{
+			name: "filter !=",
+			path: "$.store.book[?(@.category != 'fiction')]",
+			expectedStrings: []string{
+				`category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
 `},
 			expectedPathErr: "",
 		},
