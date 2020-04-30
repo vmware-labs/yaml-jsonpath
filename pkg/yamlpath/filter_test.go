@@ -238,6 +238,36 @@ y: 2
 			match: true,
 		},
 		{
+			// When a filter path does not match, it produces an empty set of nodes.
+			// Comparison against an empty set does not match even it matches every element of the set.
+			name:   "numeric comparison filter, not found path to literal, no match",
+			filter: "@.x>=9",
+			yamlDoc: `---
+category: reference
+`,
+			match: false,
+		},
+		{
+			// When a filter path does not match, it produces an empty set of nodes.
+			// Comparison against an empty set does not match even it matches every element of the set.
+			name:   "numeric comparison filter, literal to not found path, no match",
+			filter: "1<@.x",
+			yamlDoc: `---
+category: reference
+`,
+			match: false,
+		},
+		{
+			// When a filter path does not match, it produces an empty set of nodes.
+			// Comparison against an empty set does not match even it matches every element of the set.
+			name:   "numeric comparison filter, path to not found path, match",
+			filter: "@.x<@.y",
+			yamlDoc: `---
+x: 1
+`,
+			match: false,
+		},
+		{
 			name:   "numeric comparison filter, path to path, no match",
 			filter: "@.x>@.y",
 			yamlDoc: `---
@@ -282,6 +312,15 @@ x: 1
 y: [2,3]
 `,
 			match: true,
+		},
+		{
+			name:   "numeric comparison filter, path to path, single to empty set, match",
+			filter: "@.x<@.y[*]",
+			yamlDoc: `---
+x: 1
+y: []
+`,
+			match: false,
 		},
 		{
 			name:   "numeric comparison filter, path to path, single to multiple, no match",

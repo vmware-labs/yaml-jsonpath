@@ -102,7 +102,6 @@ func compareChildren(parseTree *filterNode, accept func(int) bool) func(*yaml.No
 	if lhs == nil || rhs == nil {
 		return never
 	}
-	// FIXME: do not assume lhs is lexemeFilterAt and rhs is a numeric literal
 	if isItemFilter(lhs) {
 		if isNumericLiteral(rhs) {
 			lhsPath := filterAtPath(lhs)
@@ -112,12 +111,14 @@ func compareChildren(parseTree *filterNode, accept func(int) bool) func(*yaml.No
 						result = false
 					}
 				}()
+				match := false
 				for _, n := range lhsPath(node) {
 					if !accept(compare(n, rhs)) {
 						return false
 					}
+					match = true
 				}
-				return true
+				return match
 			}
 		} else if isItemFilter(rhs) {
 			lhsPath := filterAtPath(lhs)
@@ -128,14 +129,16 @@ func compareChildren(parseTree *filterNode, accept func(int) bool) func(*yaml.No
 						result = false
 					}
 				}()
+				match := false
 				for _, m := range lhsPath(node) {
 					for _, n := range rhsPath(node) {
 						if !accept(compareNodes(m, n)) {
 							return false
 						}
+						match = true
 					}
 				}
-				return true
+				return match
 			}
 		}
 	} else if isNumericLiteral(lhs) {
@@ -147,12 +150,14 @@ func compareChildren(parseTree *filterNode, accept func(int) bool) func(*yaml.No
 						result = false
 					}
 				}()
+				match := false
 				for _, n := range rhsPath(node) {
 					if !accept(-compare(n, lhs)) {
 						return false
 					}
+					match = true
 				}
-				return true
+				return match
 			}
 		} else if isNumericLiteral(rhs) {
 			return func(node *yaml.Node) bool {
