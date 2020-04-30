@@ -38,7 +38,7 @@ Valid paths are strings conforming to the following BNF syntax.
                    <filter term> > <filter term> |       ; numeric greater than
                    <filter term> >= <filter term> |      ; numeric greater than or equal to
                    <filter term> < <filter term> |       ; numeric less than
-                   <filter term> <= <filter term> |      ; TODO: numeric less than or equal to
+                   <filter term> <= <filter term> |      ; numeric less than or equal to
                    <filter term> =~ <regular expr>  |    ; TODO: matches regular expression
                    "(" <filter expr> ")"                 ; TODO: bracketing
 <filter term> ::= "@" <subpath> |                        ; item relative to element being processed

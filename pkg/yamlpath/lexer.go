@@ -54,6 +54,7 @@ const (
 	lexemeFilterInequality
 	lexemeFilterGreaterThan
 	lexemeFilterGreaterThanOrEqual
+	lexemeFilterLessThanOrEqual
 	lexemeFilterLessThan
 	lexemeFilterIntegerLiteral
 	lexemeFilterFloatLiteral
@@ -250,6 +251,7 @@ const (
 	filterGreaterThan            string = ">"
 	filterGreaterThanOrEqual     string = ">="
 	filterLessThan               string = "<"
+	filterLessThanOrEqual        string = "<="
 	filterStringLiteralDelimiter string = "'"
 	recursiveDescent             string = ".."
 )
@@ -485,6 +487,10 @@ func lexFilterExprInitial(l *lexer) stateFn {
 		return l.errorf("missing first operand for binary operator >")
 	}
 
+	if l.hasPrefix(filterLessThanOrEqual) {
+		return l.errorf("missing first operand for binary operator <=")
+	}
+
 	if l.hasPrefix(filterLessThan) {
 		return l.errorf("missing first operand for binary operator <")
 	}
@@ -582,6 +588,23 @@ func lexFilterExpr(l *lexer) stateFn {
 		l.stripWhitespace()
 		if l.hasPrefix(filterStringLiteralDelimiter) {
 			return l.errorf("strings cannot be compared using > at position %d, following %q", l.pos, l.context())
+		}
+
+		l.push(lexFilterExpr)
+		return lexFilterTerm
+	}
+
+	if l.hasPrefix(filterLessThanOrEqual) {
+		if strings.HasPrefix(l.context(), filterStringLiteralDelimiter) {
+			return l.errorf("strings cannot be compared using <= at position %d, following %q", l.pos, l.context())
+		}
+		l.next()
+		l.next()
+		l.emit(lexemeFilterLessThanOrEqual)
+
+		l.stripWhitespace()
+		if l.hasPrefix(filterStringLiteralDelimiter) {
+			return l.errorf("strings cannot be compared using <= at position %d, following %q", l.pos, l.context())
 		}
 
 		l.push(lexFilterExpr)
