@@ -75,6 +75,277 @@ price: 8.95
 			match: false,
 		},
 		{
+			name:   "numeric comparison filter, match",
+			filter: "@.price>=8.95",
+			yamlDoc: `---
+category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
+`,
+			match: true,
+		},
+		{
+			name:   "numeric comparison filter, no match",
+			filter: "@.price>=9",
+			yamlDoc: `---
+category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
+`,
+			match: false,
+		},
+		{
+			name:   "numeric comparison filter, match",
+			filter: "@.price<8.96",
+			yamlDoc: `---
+category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
+`,
+			match: true,
+		},
+		{
+			name:   "numeric comparison filter, no match",
+			filter: "@.price<8",
+			yamlDoc: `---
+category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
+`,
+			match: false,
+		},
+		{
+			name:   "numeric comparison filter, match",
+			filter: "@.price<=8.95",
+			yamlDoc: `---
+category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
+`,
+			match: true,
+		},
+		{
+			name:   "numeric comparison filter, no match",
+			filter: "@.price<=8",
+			yamlDoc: `---
+category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
+`,
+			match: false,
+		},
+		{
+			name:   "numeric comparison filter, match",
+			filter: "8.90<@.price",
+			yamlDoc: `---
+category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
+`,
+			match: true,
+		},
+		{
+			name:   "numeric comparison filter, no match",
+			filter: "9<@.price",
+			yamlDoc: `---
+category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
+`,
+			match: false,
+		},
+		{
+			name:   "numeric comparison filter, match",
+			filter: "8.95<=@.price",
+			yamlDoc: `---
+category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
+`,
+			match: true,
+		},
+		{
+			name:   "numeric comparison filter, no match",
+			filter: "9<=@.price",
+			yamlDoc: `---
+category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
+`,
+			match: false,
+		},
+		{
+			name:   "numeric comparison filter, match",
+			filter: "8.96>@.price",
+			yamlDoc: `---
+category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
+`,
+			match: true,
+		},
+		{
+			name:   "numeric comparison filter, no match",
+			filter: "8>@.price",
+			yamlDoc: `---
+category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
+`,
+			match: false,
+		},
+		{
+			name:   "numeric comparison filter, match",
+			filter: "8.95>=@.price",
+			yamlDoc: `---
+category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
+`,
+			match: true,
+		},
+		{
+			name:   "numeric comparison filter, no match",
+			filter: "8>=@.price",
+			yamlDoc: `---
+category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
+`,
+			match: false,
+		},
+		{
+			name:   "numeric comparison filter, path to path, match",
+			filter: "@.x<@.y",
+			yamlDoc: `---
+x: 1
+y: 2
+`,
+			match: true,
+		},
+		{
+			name:   "numeric comparison filter, path to path, no match",
+			filter: "@.x>@.y",
+			yamlDoc: `---
+x: 1
+y: 2
+`,
+			match: false,
+		},
+		{
+			name:    "numeric comparison filter, literal to literal, match",
+			filter:  "8>=7",
+			yamlDoc: "",
+			match:   true,
+		},
+		{
+			name:    "numeric comparison filter, literal to literal, no match",
+			filter:  "8<7",
+			yamlDoc: "",
+			match:   false,
+		},
+		{
+			name:   "numeric comparison filter, multiple, match",
+			filter: "@.price[*]>8.90",
+			yamlDoc: `---
+price: [9,9.5]
+`,
+			match: true,
+		},
+		{
+			name:   "numeric comparison filter, multiple, no match",
+			filter: "@.price[*]>8.90",
+			yamlDoc: `---
+price: [8,9,9.5]
+`,
+			match: false,
+		},
+		{
+			name:   "numeric comparison filter, path to path, single to multiple, match",
+			filter: "@.x<@.y[*]",
+			yamlDoc: `---
+x: 1
+y: [2,3]
+`,
+			match: true,
+		},
+		{
+			name:   "numeric comparison filter, path to path, single to multiple, no match",
+			filter: "@.x<@.y[*]",
+			yamlDoc: `---
+x: 4
+y: [2,3]
+`,
+			match: false,
+		},
+		{
+			name:   "numeric comparison filter, path to path, multiple to multiple, match",
+			filter: "@.x[*]<@.y[*]",
+			yamlDoc: `---
+x: [0,1]
+y: [2,3]
+`,
+			match: true,
+		},
+		{
+			name:   "numeric comparison filter, path to path, multiple to multiple, no match",
+			filter: "@.x[*]<@.y[*]",
+			yamlDoc: `---
+x: [0,2]
+y: [2,3]
+`,
+			match: false,
+		},
+		{
+			name:   "numeric comparison filter, path to invalid path, no match",
+			filter: "@.x<@.y", // panics
+			yamlDoc: `---
+x: 4
+y: [2,3]
+`,
+			match: false,
+		},
+		{
+			name:   "numeric comparison filter, literal to invalid path, no match",
+			filter: "1<@.y", // panics
+			yamlDoc: `---
+y: [2,3]
+`,
+			match: false,
+		},
+		{
+			name:   "numeric comparison filter, invalid path to literal, no match",
+			filter: "@.y>1", // panics
+			yamlDoc: `---
+y: [2,3]
+`,
+			match: false,
+		},
+		{
+			// this testcase relies on an artifice of the test framework to test an edge case
+			// which would normally not be reached because the lexer returns an error
+			name:   "numeric comparison filter, integer to string, no match",
+			filter: "1>'x'", // produces filter parse tree with nil child
+			yamlDoc: `---
+y: [2,3]
+`,
+			match: false,
+		},
+		{
 			name:   "existence || existence filter",
 			filter: "@.a || @.b",
 			yamlDoc: `---
@@ -193,6 +464,9 @@ func parseFilterString(filter string) *filterNode {
 	lexemes := []lexeme{}
 	for {
 		lexeme := lexer.nextLexeme()
+		if lexeme.typ == lexemeError {
+			return newFilterNode(lexemes[2:])
+		}
 		if lexeme.typ == lexemeEOF {
 			break
 		}

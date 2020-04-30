@@ -605,6 +605,21 @@ func TestLexer(t *testing.T) {
 			},
 		},
 		{
+			name: "filter greater than, path to path",
+			path: "$[?(@.child1>@.child2)]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketFilter, val: "[?("},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child1"},
+				{typ: lexemeFilterGreaterThan, val: ">"},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child2"},
+				{typ: lexemeFilterBracket, val: ")]"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
 			name: "filter greater than with left hand operand missing",
 			path: "$[?(>1)]",
 			expected: []lexeme{

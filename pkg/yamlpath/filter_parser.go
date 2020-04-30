@@ -236,7 +236,7 @@ func (p *parser) basicFilter() {
 func (p *parser) filterTerm() {
 	n := p.peek()
 	switch n.typ {
-	case lexemeEOF:
+	case lexemeEOF, lexemeError:
 		p.tree = nil
 
 	case lexemeFilterAt:

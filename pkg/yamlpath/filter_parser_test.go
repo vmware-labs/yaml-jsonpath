@@ -51,7 +51,7 @@ func TestNewFilterNode(t *testing.T) {
 			},
 		},
 		{
-			name: "numeric comparison filter",
+			name: "numeric comparison filter, path to literal",
 			lexemes: []lexeme{
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".child"},
@@ -72,6 +72,36 @@ func TestNewFilterNode(t *testing.T) {
 					{
 						lexeme:   lexeme{typ: lexemeFilterIntegerLiteral, val: "1"},
 						subpath:  []lexeme{},
+						children: []*filterNode{},
+					},
+				},
+			},
+		},
+		{
+			name: "numeric comparison filter, path to path",
+			lexemes: []lexeme{
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child1"},
+				{typ: lexemeFilterGreaterThan, val: ">"},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child2"},
+			},
+			expected: &filterNode{
+				lexeme:  lexeme{typ: lexemeFilterGreaterThan, val: ">"},
+				subpath: []lexeme{},
+				children: []*filterNode{
+					{
+						lexeme: lexeme{typ: lexemeFilterAt, val: "@"},
+						subpath: []lexeme{
+							{typ: lexemeDotChild, val: ".child1"},
+						},
+						children: []*filterNode{},
+					},
+					{
+						lexeme: lexeme{typ: lexemeFilterAt, val: "@"},
+						subpath: []lexeme{
+							{typ: lexemeDotChild, val: ".child2"},
+						},
 						children: []*filterNode{},
 					},
 				},
