@@ -215,7 +215,9 @@ func (p *parser) basicFilter() {
 	p.filterTerm()
 	n = p.peek()
 	switch n.typ {
-	case lexemeFilterEquality, lexemeFilterInequality, lexemeFilterGreaterThan /* TODO: add other comparison operators*/ :
+	case lexemeFilterEquality, lexemeFilterInequality,
+		lexemeFilterGreaterThan, lexemeFilterGreaterThanOrEqual,
+		lexemeFilterLessThan, lexemeFilterLessThanOrEqual:
 		p.nextLexeme()
 		filterTerm := p.tree
 		p.filterTerm()
