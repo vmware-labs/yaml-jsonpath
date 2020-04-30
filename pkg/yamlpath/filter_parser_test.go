@@ -371,7 +371,70 @@ func TestNewFilterNode(t *testing.T) {
 				},
 			},
 		},
-		// TODO: parentheses
+		{
+			name: "existence filter in parentheses",
+			lexemes: []lexeme{
+				{typ: lexemeFilterOpenBracket, val: "("},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeFilterCloseBracket, val: ")"},
+			},
+			expected: &filterNode{
+				lexeme: lexeme{typ: lexemeFilterAt, val: "@"},
+				subpath: []lexeme{
+					{typ: lexemeDotChild, val: ".child"},
+				},
+				children: []*filterNode{},
+			},
+		},
+		{
+			name: "existence && (existence || existence) filter",
+			lexemes: []lexeme{
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".a"},
+				{typ: lexemeFilterConjunction, val: "&&"},
+				{typ: lexemeFilterOpenBracket, val: "("},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".b"},
+				{typ: lexemeFilterDisjunction, val: "||"},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".c"},
+				{typ: lexemeFilterCloseBracket, val: ")"},
+			},
+			expected: &filterNode{
+				lexeme:  lexeme{typ: lexemeFilterConjunction, val: "&&"},
+				subpath: []lexeme{},
+				children: []*filterNode{
+					{
+						lexeme: lexeme{typ: lexemeFilterAt, val: "@"},
+						subpath: []lexeme{
+							{typ: lexemeDotChild, val: ".a"},
+						},
+						children: []*filterNode{},
+					},
+					{
+						lexeme:  lexeme{typ: lexemeFilterDisjunction, val: "||"},
+						subpath: []lexeme{},
+						children: []*filterNode{
+							{
+								lexeme: lexeme{typ: lexemeFilterAt, val: "@"},
+								subpath: []lexeme{
+									{typ: lexemeDotChild, val: ".b"},
+								},
+								children: []*filterNode{},
+							},
+							{
+								lexeme: lexeme{typ: lexemeFilterAt, val: "@"},
+								subpath: []lexeme{
+									{typ: lexemeDotChild, val: ".c"},
+								},
+								children: []*filterNode{},
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	focussed := false

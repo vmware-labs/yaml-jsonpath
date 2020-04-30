@@ -212,6 +212,16 @@ func (p *parser) basicFilter() {
 		return
 	}
 
+	if n.typ == lexemeFilterOpenBracket {
+		p.nextLexeme()
+		p.expression()
+		if p.peek().typ != lexemeFilterCloseBracket {
+			panic("missing close bracket")
+		}
+		p.nextLexeme()
+		return
+	}
+
 	p.filterTerm()
 	n = p.peek()
 	switch n.typ {

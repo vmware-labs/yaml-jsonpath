@@ -426,7 +426,15 @@ c: x
 `,
 			match: true,
 		},
-		// TODO: parentheses
+		{
+			// test just a single case of parentheses as these do not end up in the parse tree
+			name:   "(existence || existence) && existence filter",
+			filter: "(@.a || @.b) && @.c",
+			yamlDoc: `---
+a: x
+`,
+			match: false,
+		},
 	}
 
 	focussed := false
