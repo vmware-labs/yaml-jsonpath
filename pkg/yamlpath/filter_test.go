@@ -474,6 +474,36 @@ a: x
 `,
 			match: false,
 		},
+		{
+			name:   "nested filter (edge case), match",
+			filter: "@.y[?(@.z==1)].w==2",
+			yamlDoc: `---
+y:
+- z: 1
+  w: 2	
+`,
+			match: true,
+		},
+		{
+			name:   "nested filter (edge case), no match",
+			filter: "@.y[?(@.z==5)].w==2",
+			yamlDoc: `---
+y:
+- z: 1
+  w: 2
+`,
+			match: false,
+		},
+		{
+			name:   "nested filter (edge case), no match",
+			filter: "@.y[?(@.z==1)].w==4",
+			yamlDoc: `---
+y:
+- z: 1
+  w: 2
+`,
+			match: false,
+		},
 	}
 
 	focussed := false

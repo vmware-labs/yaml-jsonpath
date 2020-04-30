@@ -996,6 +996,22 @@ func TestLexer(t *testing.T) {
 				{typ: lexemeError, val: `missing end of filter at position 11, following ".child"`},
 			},
 		},
+		{
+			name: "nested filter (edge case)",
+			path: "$[?(@.y[?(@.z)])]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketFilter, val: "[?("},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".y"},
+				{typ: lexemeBracketFilter, val: "[?("},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".z"},
+				{typ: lexemeFilterBracket, val: ")]"},
+				{typ: lexemeFilterBracket, val: ")]"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
 	}
 
 	focussed := false

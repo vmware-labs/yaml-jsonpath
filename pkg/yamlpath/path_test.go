@@ -42,6 +42,13 @@ store:
     price: 19.95
   feather duster:
     price: 9.95
+x:
+  - y:
+    - z: 1
+      w: 2
+  - y:
+    - z: 3
+      w: 4
 `
 	var n yaml.Node
 
@@ -83,6 +90,13 @@ store:
     price: 19.95
   feather duster:
     price: 9.95
+x:
+- y:
+  - z: 1
+    w: 2
+- y:
+  - z: 3
+    w: 4
 `},
 			expectedPathErr: "",
 		},
@@ -114,6 +128,13 @@ store:
     price: 19.95
   feather duster:
     price: 9.95
+x:
+- y:
+  - z: 1
+    w: 2
+- y:
+  - z: 3
+    w: 4
 `},
 			expectedPathErr: "",
 		},
@@ -726,6 +747,16 @@ price: 8.95
 author: Nigel Rees
 title: Sayings of the Century
 price: 8.95
+`},
+			expectedPathErr: "",
+		},
+		{
+			name: "nested filter (edge case)",
+			path: "$.x[?(@.y[?(@.z==1)].w==2)]",
+			expectedStrings: []string{
+				`y:
+- z: 1
+  w: 2
 `},
 			expectedPathErr: "",
 		},

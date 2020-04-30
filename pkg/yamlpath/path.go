@@ -93,12 +93,18 @@ func newPath(l *lexer) (*Path, error) {
 
 	case lexemeBracketFilter:
 		filterLexemes := []lexeme{}
+		filterNestingLevel := 1
 	f:
 		for {
 			lx := l.nextLexeme()
 			switch lx.typ {
+			case lexemeBracketFilter:
+				filterNestingLevel++
 			case lexemeFilterBracket:
-				break f
+				filterNestingLevel--
+				if filterNestingLevel == 0 {
+					break f
+				}
 			case lexemeEOF:
 				// should never happen as lexer should have detected an error
 				return new(empty), errors.New("missing end of filter")

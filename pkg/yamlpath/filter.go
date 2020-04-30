@@ -43,6 +43,7 @@ func newFilter(parseTree *filterNode) func(*yaml.Node) bool {
 		// FIXME: do not assume lhs is lexemeFilterAt and rhs is a literal
 		lhsPath := filterAtPath(lhs)
 		return func(node *yaml.Node) bool {
+			match := false
 			for _, n := range lhsPath(node) {
 				if rhs.lexeme.typ == lexemeFilterStringLiteral {
 					if stripFilterStringLiteral(rhs.lexeme) != n.Value {
@@ -51,8 +52,9 @@ func newFilter(parseTree *filterNode) func(*yaml.Node) bool {
 				} else if compare(n, rhs) != 0 {
 					return false
 				}
+				match = true
 			}
-			return true
+			return match
 		}
 
 	case lexemeFilterInequality:
@@ -61,6 +63,7 @@ func newFilter(parseTree *filterNode) func(*yaml.Node) bool {
 		// FIXME: do not assume lhs is lexemeFilterAt and rhs is a literal
 		lhsPath := filterAtPath(lhs)
 		return func(node *yaml.Node) bool {
+			// FIXME: check that the set isn't empty
 			for _, n := range lhsPath(node) {
 				if rhs.lexeme.typ == lexemeFilterStringLiteral {
 					if stripFilterStringLiteral(rhs.lexeme) == n.Value {

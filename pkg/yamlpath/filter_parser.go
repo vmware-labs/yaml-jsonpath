@@ -252,16 +252,26 @@ func (p *parser) filterTerm() {
 	case lexemeFilterAt:
 		p.nextLexeme()
 		subpath := []lexeme{}
+		filterNestingLevel := 1
 	f:
 		for {
 			s := p.peek()
 			switch s.typ {
 			case lexemeIdentity, lexemeDotChild, lexemeBracketChild, lexemeRecursiveDescent, lexemeArraySubscript:
-				// TODO: nested filters
-				subpath = append(subpath, s)
+			case lexemeBracketFilter:
+				filterNestingLevel++
+			case lexemeFilterBracket:
+				filterNestingLevel--
+				if filterNestingLevel == 0 {
+					break f
+				}
 			default:
-				break f
+				// allow any other lexemes in a nested filter
+				if filterNestingLevel == 1 {
+					break f
+				}
 			}
+			subpath = append(subpath, s)
 			p.nextLexeme()
 		}
 		p.tree = &filterNode{
