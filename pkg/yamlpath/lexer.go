@@ -42,8 +42,8 @@ const (
 	lexemeBracketChild
 	lexemeRecursiveDescent
 	lexemeArraySubscript
-	lexemeBracketFilter
-	lexemeFilterBracket
+	lexemeFilterBegin
+	lexemeFilterEnd
 	lexemeFilterOpenBracket
 	lexemeFilterCloseBracket
 	lexemeFilterNot
@@ -411,7 +411,7 @@ func lexSubPath(l *lexer) stateFn {
 		l.next()
 		l.next()
 		l.next()
-		l.emit(lexemeBracketFilter)
+		l.emit(lexemeFilterBegin)
 		l.push(lexEndBracketFilter)
 		return lexFilterExprInitial
 	}
@@ -658,7 +658,7 @@ func lexEndBracketFilter(l *lexer) stateFn {
 	if l.hasPrefix(filterBracket) {
 		l.next()
 		l.next()
-		l.emit(lexemeFilterBracket)
+		l.emit(lexemeFilterEnd)
 		return lexSubPath
 	}
 

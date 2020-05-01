@@ -258,9 +258,9 @@ func (p *parser) filterTerm() {
 			s := p.peek()
 			switch s.typ {
 			case lexemeIdentity, lexemeDotChild, lexemeBracketChild, lexemeRecursiveDescent, lexemeArraySubscript:
-			case lexemeBracketFilter:
+			case lexemeFilterBegin:
 				filterNestingLevel++
-			case lexemeFilterBracket:
+			case lexemeFilterEnd:
 				filterNestingLevel--
 				if filterNestingLevel == 0 {
 					break f

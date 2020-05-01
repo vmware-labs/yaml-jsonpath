@@ -91,16 +91,16 @@ func newPath(l *lexer) (*Path, error) {
 		subscript := strings.TrimSuffix(strings.TrimPrefix(lx.val, "["), "]")
 		return arraySubscriptThen(subscript, subPath), nil
 
-	case lexemeBracketFilter:
+	case lexemeFilterBegin:
 		filterLexemes := []lexeme{}
 		filterNestingLevel := 1
 	f:
 		for {
 			lx := l.nextLexeme()
 			switch lx.typ {
-			case lexemeBracketFilter:
+			case lexemeFilterBegin:
 				filterNestingLevel++
-			case lexemeFilterBracket:
+			case lexemeFilterEnd:
 				filterNestingLevel--
 				if filterNestingLevel == 0 {
 					break f
