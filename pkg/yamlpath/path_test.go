@@ -771,7 +771,22 @@ price: 22.99
 `},
 			expectedPathErr: "",
 		},
-	}
+		{
+			name: "negated filter",
+			path: "$.store.book[?(!@.isbn)]",
+			expectedStrings: []string{
+				`category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
+`,
+				`category: fiction
+author: Evelyn Waugh
+title: Sword of Honour
+price: 12.99
+`},
+			expectedPathErr: "",
+		}}
 
 	focussed := false
 	for _, tc := range cases {

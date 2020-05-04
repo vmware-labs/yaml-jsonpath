@@ -534,6 +534,36 @@ price: 8.95
 `,
 			match: true,
 		},
+		{
+			name:   "negated existence filter, no match",
+			filter: "!@.category",
+			yamlDoc: `---
+category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
+`,
+			match: false,
+		},
+		{
+			name:   "negated existence filter, match",
+			filter: "!@.nosuch",
+			yamlDoc: `---
+category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
+`,
+			match: true,
+		},
+		{
+			name:   "negated parentheses",
+			filter: "!(@.a) && @.c",
+			yamlDoc: `---
+c: x
+`,
+			match: true,
+		},
 	}
 
 	focussed := false

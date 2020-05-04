@@ -1042,6 +1042,49 @@ func TestLexer(t *testing.T) {
 				{typ: lexemeIdentity, val: ""},
 			},
 		},
+		{
+			name: "filter negation",
+			path: "$[?(!@.child)]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeFilterBegin, val: "[?("},
+				{typ: lexemeFilterNot, val: "!"},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeFilterEnd, val: ")]"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "filter negation of comparison (edge case)",
+			path: "$[?(!@.child>1)]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeFilterBegin, val: "[?("},
+				{typ: lexemeFilterNot, val: "!"},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeFilterGreaterThan, val: ">"},
+				{typ: lexemeFilterIntegerLiteral, val: "1"},
+				{typ: lexemeFilterEnd, val: ")]"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "filter negation of bracket",
+			path: "$[?(!(@.child))]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeFilterBegin, val: "[?("},
+				{typ: lexemeFilterNot, val: "!"},
+				{typ: lexemeFilterOpenBracket, val: "("},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeFilterCloseBracket, val: ")"},
+				{typ: lexemeFilterEnd, val: ")]"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
 	}
 
 	focussed := false

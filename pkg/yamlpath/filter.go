@@ -45,6 +45,12 @@ func newFilter(parseTree *filterNode) filter {
 	case lexemeFilterInequality:
 		return compareChildren(parseTree, notEqual)
 
+	case lexemeFilterNot:
+		f := newFilter(parseTree.children[0])
+		return func(node, root *yaml.Node) bool {
+			return !f(node, root)
+		}
+
 	case lexemeFilterDisjunction:
 		f1 := newFilter(parseTree.children[0])
 		f2 := newFilter(parseTree.children[1])

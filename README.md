@@ -32,7 +32,7 @@ Valid paths are strings conforming to the following BNF syntax.
 <filter expr> ::= <filter conjunction> [ "||" <filter conjunction ]* ; disjunction
 <filter conjunction> := <basic filter> [ "&&" <basic filter> ]* ; conjunction (binds more tightly than ||)
 <basic filter> ::= <filter existence> |
-                   "!" <filter existence> |              ; TODO: negation (should this apply to brackets too?)
+                   "!" <basic filter> |                  ; negation
                    <filter term> == <filter term> |      ; equality
                    <filter term> != <filter term> |      ; inequality
                    <filter term> > <filter term> |       ; numeric greater than

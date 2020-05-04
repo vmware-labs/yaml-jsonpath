@@ -496,6 +496,83 @@ func TestNewFilterNode(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "negated existence filter",
+			lexemes: []lexeme{
+				{typ: lexemeFilterNot, val: "!"},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child"},
+			},
+			expected: &filterNode{
+				lexeme:  lexeme{typ: lexemeFilterNot, val: "!"},
+				subpath: []lexeme{},
+				children: []*filterNode{
+					{
+						lexeme: lexeme{typ: lexemeFilterAt, val: "@"},
+						subpath: []lexeme{
+							{typ: lexemeDotChild, val: ".child"},
+						},
+						children: []*filterNode{},
+					},
+				},
+			},
+		},
+		{
+			name: "negated numeric comparison filter",
+			lexemes: []lexeme{
+				{typ: lexemeFilterNot, val: "!"},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeFilterGreaterThan, val: ">"},
+				{typ: lexemeFilterIntegerLiteral, val: "1"},
+			},
+			expected: &filterNode{
+				lexeme:  lexeme{typ: lexemeFilterNot, val: "!"},
+				subpath: []lexeme{},
+				children: []*filterNode{
+					{
+						lexeme:  lexeme{typ: lexemeFilterGreaterThan, val: ">"},
+						subpath: []lexeme{},
+						children: []*filterNode{
+							{
+								lexeme: lexeme{typ: lexemeFilterAt, val: "@"},
+								subpath: []lexeme{
+									{typ: lexemeDotChild, val: ".child"},
+								},
+								children: []*filterNode{},
+							},
+							{
+								lexeme:   lexeme{typ: lexemeFilterIntegerLiteral, val: "1"},
+								subpath:  []lexeme{},
+								children: []*filterNode{},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "negated parentheses",
+			lexemes: []lexeme{
+				{typ: lexemeFilterNot, val: "!"},
+				{typ: lexemeFilterOpenBracket, val: "("},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeFilterCloseBracket, val: ")"},
+			},
+			expected: &filterNode{
+				lexeme:  lexeme{typ: lexemeFilterNot, val: "!"},
+				subpath: []lexeme{}, children: []*filterNode{
+					{
+						lexeme: lexeme{typ: lexemeFilterAt, val: "@"},
+						subpath: []lexeme{
+							{typ: lexemeDotChild, val: ".child"},
+						},
+						children: []*filterNode{},
+					},
+				},
+			},
+		},
 	}
 
 	focussed := false
