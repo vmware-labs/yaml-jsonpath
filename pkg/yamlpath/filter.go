@@ -83,7 +83,8 @@ func compareChildren(parseTree *filterNode, accept func(int) bool) filter {
 		return never
 	}
 	if isItemFilter(lhs) {
-		if isLiteral(rhs) {
+		switch {
+		case isLiteral(rhs):
 			lhsPath := filterPath(lhs)
 			return func(node, root *yaml.Node) (result bool) {
 				defer func() {
@@ -100,7 +101,8 @@ func compareChildren(parseTree *filterNode, accept func(int) bool) filter {
 				}
 				return match
 			}
-		} else if isItemFilter(rhs) {
+
+		case isItemFilter(rhs):
 			lhsPath := filterPath(lhs)
 			rhsPath := filterPath(rhs)
 			return func(node, root *yaml.Node) (result bool) {
@@ -120,9 +122,14 @@ func compareChildren(parseTree *filterNode, accept func(int) bool) filter {
 				}
 				return match
 			}
+
+		default:
+			panic("missing case")
 		}
+
 	} else if isLiteral(lhs) {
-		if isItemFilter(rhs) {
+		switch {
+		case isItemFilter(rhs):
 			rhsPath := filterPath(rhs)
 			return func(node, root *yaml.Node) (result bool) {
 				defer func() {
@@ -139,14 +146,19 @@ func compareChildren(parseTree *filterNode, accept func(int) bool) filter {
 				}
 				return match
 			}
-		} else if isNumericLiteral(rhs) {
+
+		case isNumericLiteral(rhs):
 			return func(node, root *yaml.Node) bool {
 				return accept(compareNumericLiterals(lhs, rhs))
 			}
-		} else if isStringLiteral(rhs) {
+
+		case isStringLiteral(rhs):
 			return func(node, root *yaml.Node) bool {
 				return accept(compareStringLiterals(lhs, rhs))
 			}
+
+		default:
+			panic("missing case")
 		}
 	}
 	return never
