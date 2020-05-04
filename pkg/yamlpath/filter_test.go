@@ -564,6 +564,50 @@ c: x
 `,
 			match: true,
 		},
+		{
+			name:   "regular expression filter at path, match",
+			filter: "@.category=~/ref.*ce/",
+			yamlDoc: `---
+category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
+`,
+			match: true,
+		},
+		{
+			name:   "regular expression filter at path, no match",
+			filter: "@.category=~/.*x/",
+			yamlDoc: `---
+category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
+`,
+			match: false,
+		},
+		{
+			name:   "regular expression filter root path, match",
+			filter: "$.category=~/ref.*ce/",
+			rootDoc: `---
+category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
+`,
+			match: true,
+		},
+		{
+			name:   "regular expression filter root path, no match",
+			filter: "$.category=~/.*x/",
+			rootDoc: `---
+category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
+`,
+			match: false,
+		},
 	}
 
 	focussed := false

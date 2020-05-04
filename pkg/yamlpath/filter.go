@@ -8,7 +8,9 @@ package yamlpath
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -45,20 +47,23 @@ func newFilter(parseTree *filterNode) filter {
 	case lexemeFilterInequality:
 		return compareChildren(parseTree, notEqual)
 
+	case lexemeFilterMatchesRegularExpression:
+		return matchRegularExpression(parseTree)
+
 	case lexemeFilterNot:
 		f := newFilter(parseTree.children[0])
 		return func(node, root *yaml.Node) bool {
 			return !f(node, root)
 		}
 
-	case lexemeFilterDisjunction:
+	case lexemeFilterOr:
 		f1 := newFilter(parseTree.children[0])
 		f2 := newFilter(parseTree.children[1])
 		return func(node, root *yaml.Node) bool {
 			return f1(node, root) || f2(node, root)
 		}
 
-	case lexemeFilterConjunction:
+	case lexemeFilterAnd:
 		f1 := newFilter(parseTree.children[0])
 		f2 := newFilter(parseTree.children[1])
 		return func(node, root *yaml.Node) bool {
@@ -304,4 +309,40 @@ func stripFilterStringLiteral(l lexeme) string {
 		panic(fmt.Sprintf("%#v", l))
 	}
 	return l.val[1 : len(l.val)-1]
+}
+
+func matchRegularExpression(parseTree *filterNode) filter {
+	lhs := parseTree.children[0]
+	rhs := parseTree.children[1]
+	if lhs == nil || rhs == nil {
+		return never
+	}
+	if isItemFilter(lhs) {
+		lhsPath := filterPath(lhs)
+		return func(node, root *yaml.Node) (result bool) {
+			match := false
+			for _, n := range lhsPath(node, root) {
+				if !stringMatchesRegularExpression(n.Value, rhs) {
+					return false
+				}
+				match = true
+			}
+			return match
+		}
+	} else if isStringLiteral(lhs) {
+		return func(node, root *yaml.Node) (result bool) {
+			return stringMatchesRegularExpression(stripFilterStringLiteral(lhs.lexeme), rhs)
+		}
+	}
+	return never
+}
+
+func stringMatchesRegularExpression(s string, rhs *filterNode) bool {
+	re, _ := regex(rhs.lexeme.val) // regex already compiled during lexing
+	return re.Match([]byte(s))
+}
+
+func regex(rawRegex string) (*regexp.Regexp, error) {
+	re := strings.ReplaceAll(rawRegex[1:len(rawRegex)-1], `\/`, `/`)
+	return regexp.Compile(re)
 }

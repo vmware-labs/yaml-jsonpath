@@ -156,7 +156,7 @@ func (p *parser) parse() *filterNode {
 
 func (p *parser) expression() {
 	p.conjunction()
-	for p.peek().typ == lexemeFilterDisjunction {
+	for p.peek().typ == lexemeFilterOr {
 		p.push(p.tree)
 		p.or()
 	}
@@ -177,7 +177,7 @@ func (p *parser) or() {
 
 func (p *parser) conjunction() {
 	p.basicFilter()
-	for p.peek().typ == lexemeFilterConjunction {
+	for p.peek().typ == lexemeFilterAnd {
 		p.push(p.tree)
 		p.and()
 	}
@@ -227,7 +227,8 @@ func (p *parser) basicFilter() {
 	switch n.typ {
 	case lexemeFilterEquality, lexemeFilterInequality,
 		lexemeFilterGreaterThan, lexemeFilterGreaterThanOrEqual,
-		lexemeFilterLessThan, lexemeFilterLessThanOrEqual:
+		lexemeFilterLessThan, lexemeFilterLessThanOrEqual,
+		lexemeFilterMatchesRegularExpression:
 		p.nextLexeme()
 		filterTerm := p.tree
 		p.filterTerm()
@@ -280,7 +281,7 @@ func (p *parser) filterTerm() {
 			children: []*filterNode{},
 		}
 
-	case lexemeFilterIntegerLiteral, lexemeFilterFloatLiteral, lexemeFilterStringLiteral:
+	case lexemeFilterIntegerLiteral, lexemeFilterFloatLiteral, lexemeFilterStringLiteral, lexemeFilterRegularExpressionLiteral:
 		p.nextLexeme()
 		p.tree = &filterNode{
 			lexeme:   n,

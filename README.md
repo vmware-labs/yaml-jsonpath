@@ -18,20 +18,23 @@ Valid paths are strings conforming to the following BNF syntax.
               <recursive descent> <subpath>
 
 <child> ::= <dot child> | <bracket child>
-<dot child> ::= "." <child name> | ".*"                  ; child named <child name> or all children
-<bracket child> ::= "['" <child name> "']"               ; child named <child name>
+<dot child> ::= "." <child name> | ".*"                  ; named child or all children
+<bracket child> ::= "['" <child name> "']"               ; named child
 
 <recursive descent> ::= ".." <child name>                ; all the descendants named <child name>
 
 <array access> ::= "[" <index> "]" | "[" <filter> "]"    ; zero or more elements of a sequence
+
 <index> ::= <integer> | <range> | "*"                    ; specific index, range of indices, or all indices
 <range> ::= <integer> ":" <integer> |                    ; start (inclusive) to end (exclusive)
             <integer> ":" <integer> ":" <integer>        ; start (inclusive) to end (exclusive) by step
 
 <filter> ::= "?(" <filter expr> ")"
-<filter expr> ::= <filter conjunction> [ "||" <filter conjunction ]* ; disjunction
-<filter conjunction> := <basic filter> [ "&&" <basic filter> ]* ; conjunction (binds more tightly than ||)
-<basic filter> ::= <filter existence> |
+<filter expr> ::= <filter and> |
+                  <filter and> "||" <filter expr>        ; disjunction
+<filter and> := <basic filter> |
+                <basic filter> "&&" <filter and>         ; conjunction (binds more tightly than ||)
+<basic filter> ::= <filter subpath> |                    ; subpath exists
                    "!" <basic filter> |                  ; negation
                    <filter term> == <filter term> |      ; equality
                    <filter term> != <filter term> |      ; inequality
@@ -39,21 +42,23 @@ Valid paths are strings conforming to the following BNF syntax.
                    <filter term> >= <filter term> |      ; numeric greater than or equal to
                    <filter term> < <filter term> |       ; numeric less than
                    <filter term> <= <filter term> |      ; numeric less than or equal to
-                   <filter term> =~ <regular expr>  |    ; TODO: matches regular expression
+                   <filter subpath> =~ <regular expr> |  ; subpath value matches regular expression
                    "(" <filter expr> ")"                 ; bracketing
 <filter term> ::= "@" <subpath> |                        ; item relative to element being processed
                   "$" <subpath>                          ; item relative to root node of a document
                   <filter literal>
-<filter existence> ::= "@" <subpath>                     ; item, relative to element being processed, exists
-                       "$" <subpath>                     ; item, relative to root node of a document, exists
-<regular expr> := "/" <string> "/"                       ; regular expression <<<<<<<<< TBD
+<filter subpath> ::= "@" <subpath> |                     ; item, relative to element being processed
+                     "$" <subpath>                       ; item, relative to root node of a document
 <filter literal> ::= <integer> |                         ; positive or negative decimal integer
                      <floating point number> |           ; floating point number
                      "'" <string without '> "'"          ; string enclosed in single quotes
+<regular expr> := "/" <go regex> "/"                     ; Go regular expression with any "/" in the regex escaped as "\/"
 ```
 
 The `NewPath` function parses a string path and returns a corresponding value of the `Path` type and
-an error indicating whether parsing succeeded or failed. 
+an error indicating whether parsing succeeded or failed.
+
+Go regular expressions are defined [here](https://golang.org/pkg/regexp/).
 
 ## Semantics
 

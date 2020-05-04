@@ -139,12 +139,12 @@ func TestNewFilterNode(t *testing.T) {
 			lexemes: []lexeme{
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".a"},
-				{typ: lexemeFilterDisjunction, val: "||"},
+				{typ: lexemeFilterOr, val: "||"},
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".b"},
 			},
 			expected: &filterNode{
-				lexeme:  lexeme{typ: lexemeFilterDisjunction, val: "||"},
+				lexeme:  lexeme{typ: lexemeFilterOr, val: "||"},
 				subpath: []lexeme{},
 				children: []*filterNode{
 					{
@@ -171,12 +171,12 @@ func TestNewFilterNode(t *testing.T) {
 				{typ: lexemeDotChild, val: ".a"},
 				{typ: lexemeFilterGreaterThan, val: ">"},
 				{typ: lexemeFilterIntegerLiteral, val: "1"},
-				{typ: lexemeFilterDisjunction, val: "||"},
+				{typ: lexemeFilterOr, val: "||"},
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".b"},
 			},
 			expected: &filterNode{
-				lexeme:  lexeme{typ: lexemeFilterDisjunction, val: "||"},
+				lexeme:  lexeme{typ: lexemeFilterOr, val: "||"},
 				subpath: []lexeme{},
 				children: []*filterNode{
 					{
@@ -212,14 +212,14 @@ func TestNewFilterNode(t *testing.T) {
 			lexemes: []lexeme{
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".a"},
-				{typ: lexemeFilterDisjunction, val: "||"},
+				{typ: lexemeFilterOr, val: "||"},
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".b"},
 				{typ: lexemeFilterGreaterThan, val: ">"},
 				{typ: lexemeFilterIntegerLiteral, val: "1"},
 			},
 			expected: &filterNode{
-				lexeme:  lexeme{typ: lexemeFilterDisjunction, val: "||"},
+				lexeme:  lexeme{typ: lexemeFilterOr, val: "||"},
 				subpath: []lexeme{},
 				children: []*filterNode{
 					{
@@ -257,14 +257,14 @@ func TestNewFilterNode(t *testing.T) {
 				{typ: lexemeDotChild, val: ".a"},
 				{typ: lexemeFilterGreaterThan, val: ">"},
 				{typ: lexemeFilterIntegerLiteral, val: "1"},
-				{typ: lexemeFilterDisjunction, val: "||"},
+				{typ: lexemeFilterOr, val: "||"},
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".b"},
 				{typ: lexemeFilterGreaterThan, val: ">"},
 				{typ: lexemeFilterIntegerLiteral, val: "2"},
 			},
 			expected: &filterNode{
-				lexeme:  lexeme{typ: lexemeFilterDisjunction, val: "||"},
+				lexeme:  lexeme{typ: lexemeFilterOr, val: "||"},
 				subpath: []lexeme{},
 				children: []*filterNode{
 					{
@@ -311,15 +311,15 @@ func TestNewFilterNode(t *testing.T) {
 			lexemes: []lexeme{
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".a"},
-				{typ: lexemeFilterDisjunction, val: "||"},
+				{typ: lexemeFilterOr, val: "||"},
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".b"},
-				{typ: lexemeFilterConjunction, val: "&&"},
+				{typ: lexemeFilterAnd, val: "&&"},
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".c"},
 			},
 			expected: &filterNode{
-				lexeme:  lexeme{typ: lexemeFilterDisjunction, val: "||"},
+				lexeme:  lexeme{typ: lexemeFilterOr, val: "||"},
 				subpath: []lexeme{},
 				children: []*filterNode{
 					{
@@ -330,7 +330,7 @@ func TestNewFilterNode(t *testing.T) {
 						children: []*filterNode{},
 					},
 					{
-						lexeme:  lexeme{typ: lexemeFilterConjunction, val: "&&"},
+						lexeme:  lexeme{typ: lexemeFilterAnd, val: "&&"},
 						subpath: []lexeme{},
 						children: []*filterNode{
 							{
@@ -357,19 +357,19 @@ func TestNewFilterNode(t *testing.T) {
 			lexemes: []lexeme{
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".a"},
-				{typ: lexemeFilterConjunction, val: "&&"},
+				{typ: lexemeFilterAnd, val: "&&"},
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".b"},
-				{typ: lexemeFilterDisjunction, val: "||"},
+				{typ: lexemeFilterOr, val: "||"},
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".c"},
 			},
 			expected: &filterNode{
-				lexeme:  lexeme{typ: lexemeFilterDisjunction, val: "||"},
+				lexeme:  lexeme{typ: lexemeFilterOr, val: "||"},
 				subpath: []lexeme{},
 				children: []*filterNode{
 					{
-						lexeme:  lexeme{typ: lexemeFilterConjunction, val: "&&"},
+						lexeme:  lexeme{typ: lexemeFilterAnd, val: "&&"},
 						subpath: []lexeme{},
 						children: []*filterNode{
 							{
@@ -568,6 +568,33 @@ func TestNewFilterNode(t *testing.T) {
 						subpath: []lexeme{
 							{typ: lexemeDotChild, val: ".child"},
 						},
+						children: []*filterNode{},
+					},
+				},
+			},
+		},
+		{
+			name: "regular expression match filter on path",
+			lexemes: []lexeme{
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeFilterMatchesRegularExpression, val: "=~"},
+				{typ: lexemeFilterRegularExpressionLiteral, val: "/.*/"},
+			},
+			expected: &filterNode{
+				lexeme:  lexeme{typ: lexemeFilterMatchesRegularExpression, val: "=~"},
+				subpath: []lexeme{},
+				children: []*filterNode{
+					{
+						lexeme: lexeme{typ: lexemeFilterAt, val: "@"},
+						subpath: []lexeme{
+							{typ: lexemeDotChild, val: ".child"},
+						},
+						children: []*filterNode{},
+					},
+					{
+						lexeme:   lexeme{typ: lexemeFilterRegularExpressionLiteral, val: "/.*/"},
+						subpath:  []lexeme{},
 						children: []*filterNode{},
 					},
 				},

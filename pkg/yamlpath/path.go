@@ -205,7 +205,7 @@ func arraySubscriptThen(subscript string, p *Path) *Path {
 }
 
 func filterThen(filterLexemes []lexeme, p *Path) *Path {
-	filter := parseFilter(filterLexemes)
+	filter := newFilter(newFilterNode(filterLexemes))
 	return new(func(node, root *yaml.Node) yit.Iterator {
 		if node.Kind != yaml.SequenceNode {
 			panic("not implemented")
@@ -219,8 +219,4 @@ func filterThen(filterLexemes []lexeme, p *Path) *Path {
 		}
 		return yit.FromIterators(its...)
 	})
-}
-
-func parseFilter(filterLexemes []lexeme) filter {
-	return newFilter(newFilterNode(filterLexemes))
 }
