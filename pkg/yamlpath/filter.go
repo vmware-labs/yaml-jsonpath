@@ -13,16 +13,18 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func newFilter(parseTree *filterNode) func(*yaml.Node) bool {
+type filter func(node, root *yaml.Node) bool
+
+func newFilter(parseTree *filterNode) filter {
 	if parseTree == nil {
 		return never
 	}
 
 	switch parseTree.lexeme.typ {
-	case lexemeFilterAt:
-		path := filterAtPath(parseTree)
-		return func(node *yaml.Node) bool {
-			return len(path(node)) > 0
+	case lexemeFilterAt, lexemeRoot:
+		path := filterPath(parseTree)
+		return func(node, root *yaml.Node) bool {
+			return len(path(node, root)) > 0
 		}
 
 	case lexemeFilterGreaterThan:
@@ -38,56 +40,23 @@ func newFilter(parseTree *filterNode) func(*yaml.Node) bool {
 		return compareChildren(parseTree, lessThanOrEqual)
 
 	case lexemeFilterEquality:
-		lhs := parseTree.children[0]
-		rhs := parseTree.children[1]
-		// FIXME: do not assume lhs is lexemeFilterAt and rhs is a literal
-		lhsPath := filterAtPath(lhs)
-		return func(node *yaml.Node) bool {
-			match := false
-			for _, n := range lhsPath(node) {
-				if rhs.lexeme.typ == lexemeFilterStringLiteral {
-					if stripFilterStringLiteral(rhs.lexeme) != n.Value {
-						return false
-					}
-				} else if compare(n, rhs) != 0 {
-					return false
-				}
-				match = true
-			}
-			return match
-		}
+		return compareChildren(parseTree, equal)
 
 	case lexemeFilterInequality:
-		lhs := parseTree.children[0]
-		rhs := parseTree.children[1]
-		// FIXME: do not assume lhs is lexemeFilterAt and rhs is a literal
-		lhsPath := filterAtPath(lhs)
-		return func(node *yaml.Node) bool {
-			// FIXME: check that the set isn't empty
-			for _, n := range lhsPath(node) {
-				if rhs.lexeme.typ == lexemeFilterStringLiteral {
-					if stripFilterStringLiteral(rhs.lexeme) == n.Value {
-						return false
-					}
-				} else if compare(n, rhs) == 0 {
-					return false
-				}
-			}
-			return true
-		}
+		return compareChildren(parseTree, notEqual)
 
 	case lexemeFilterDisjunction:
 		f1 := newFilter(parseTree.children[0])
 		f2 := newFilter(parseTree.children[1])
-		return func(node *yaml.Node) bool {
-			return f1(node) || f2(node)
+		return func(node, root *yaml.Node) bool {
+			return f1(node, root) || f2(node, root)
 		}
 
 	case lexemeFilterConjunction:
 		f1 := newFilter(parseTree.children[0])
 		f2 := newFilter(parseTree.children[1])
-		return func(node *yaml.Node) bool {
-			return f1(node) && f2(node)
+		return func(node, root *yaml.Node) bool {
+			return f1(node, root) && f2(node, root)
 		}
 
 	default:
@@ -95,28 +64,30 @@ func newFilter(parseTree *filterNode) func(*yaml.Node) bool {
 	}
 }
 
-func never(*yaml.Node) bool {
+var _ filter = never
+
+func never(node, root *yaml.Node) bool {
 	return false
 }
 
-func compareChildren(parseTree *filterNode, accept func(int) bool) func(*yaml.Node) bool {
+func compareChildren(parseTree *filterNode, accept func(int) bool) filter {
 	lhs := parseTree.children[0]
 	rhs := parseTree.children[1]
 	if lhs == nil || rhs == nil {
 		return never
 	}
 	if isItemFilter(lhs) {
-		if isNumericLiteral(rhs) {
-			lhsPath := filterAtPath(lhs)
-			return func(node *yaml.Node) (result bool) {
+		if isLiteral(rhs) {
+			lhsPath := filterPath(lhs)
+			return func(node, root *yaml.Node) (result bool) {
 				defer func() {
 					if p := recover(); p != nil {
 						result = false
 					}
 				}()
 				match := false
-				for _, n := range lhsPath(node) {
-					if !accept(compare(n, rhs)) {
+				for _, n := range lhsPath(node, root) {
+					if !accept(compareNodeToLiteral(n, rhs)) {
 						return false
 					}
 					match = true
@@ -124,17 +95,17 @@ func compareChildren(parseTree *filterNode, accept func(int) bool) func(*yaml.No
 				return match
 			}
 		} else if isItemFilter(rhs) {
-			lhsPath := filterAtPath(lhs)
-			rhsPath := filterAtPath(rhs)
-			return func(node *yaml.Node) (result bool) {
+			lhsPath := filterPath(lhs)
+			rhsPath := filterPath(rhs)
+			return func(node, root *yaml.Node) (result bool) {
 				defer func() {
 					if p := recover(); p != nil {
 						result = false
 					}
 				}()
 				match := false
-				for _, m := range lhsPath(node) {
-					for _, n := range rhsPath(node) {
+				for _, m := range lhsPath(node, root) {
+					for _, n := range rhsPath(node, root) {
 						if !accept(compareNodes(m, n)) {
 							return false
 						}
@@ -144,18 +115,18 @@ func compareChildren(parseTree *filterNode, accept func(int) bool) func(*yaml.No
 				return match
 			}
 		}
-	} else if isNumericLiteral(lhs) {
+	} else if isLiteral(lhs) {
 		if isItemFilter(rhs) {
-			rhsPath := filterAtPath(rhs)
-			return func(node *yaml.Node) (result bool) {
+			rhsPath := filterPath(rhs)
+			return func(node, root *yaml.Node) (result bool) {
 				defer func() {
 					if p := recover(); p != nil {
 						result = false
 					}
 				}()
 				match := false
-				for _, n := range rhsPath(node) {
-					if !accept(-compare(n, lhs)) {
+				for _, n := range rhsPath(node, root) {
+					if !accept(-compareNodeToLiteral(n, lhs)) {
 						return false
 					}
 					match = true
@@ -163,26 +134,52 @@ func compareChildren(parseTree *filterNode, accept func(int) bool) func(*yaml.No
 				return match
 			}
 		} else if isNumericLiteral(rhs) {
-			return func(node *yaml.Node) bool {
-				return accept(compareLiterals(lhs, rhs))
+			return func(node, root *yaml.Node) bool {
+				return accept(compareNumericLiterals(lhs, rhs))
+			}
+		} else if isStringLiteral(rhs) {
+			return func(node, root *yaml.Node) bool {
+				return accept(compareStringLiterals(lhs, rhs))
 			}
 		}
 	}
 	return never
 }
 
-func filterAtPath(parseTree *filterNode) func(*yaml.Node) []*yaml.Node {
+func filterPath(parseTree *filterNode) func(*yaml.Node, *yaml.Node) []*yaml.Node {
+	var at bool
+	switch parseTree.lexeme.typ {
+	case lexemeFilterAt:
+		at = true
+	case lexemeRoot:
+		at = false
+	default:
+		panic("false precondition")
+	}
 	subpath := ""
 	for _, lexeme := range parseTree.subpath {
 		subpath += lexeme.val
 	}
 	path, err := NewPath(subpath)
 	if err != nil {
-		return func(*yaml.Node) []*yaml.Node {
+		return func(node, root *yaml.Node) []*yaml.Node {
 			return []*yaml.Node{}
 		}
 	}
-	return path.Find
+	return func(node, root *yaml.Node) []*yaml.Node {
+		if at {
+			return path.Find(node)
+		}
+		return path.Find(root)
+	}
+}
+
+func equal(c int) bool {
+	return c == 0
+}
+
+func notEqual(c int) bool {
+	return c != 0
 }
 
 func greaterThan(c int) bool {
@@ -202,14 +199,22 @@ func lessThanOrEqual(c int) bool {
 }
 
 func isItemFilter(n *filterNode) bool {
-	return n.lexeme.typ == lexemeFilterAt // TODO: add root too
+	return n.lexeme.typ == lexemeFilterAt || n.lexeme.typ == lexemeRoot
+}
+
+func isLiteral(n *filterNode) bool {
+	return isStringLiteral(n) || isNumericLiteral(n)
+}
+
+func isStringLiteral(n *filterNode) bool {
+	return n.lexeme.typ == lexemeFilterStringLiteral
 }
 
 func isNumericLiteral(n *filterNode) bool {
 	return n.lexeme.typ == lexemeFilterFloatLiteral || n.lexeme.typ == lexemeFilterIntegerLiteral
 }
 
-func compare(lhs *yaml.Node, rhs *filterNode) int {
+func compareNodeToLiteral(lhs *yaml.Node, rhs *filterNode) int {
 	if isNumericLiteral(rhs) {
 		rhsFloat, err := strconv.ParseFloat(rhs.lexeme.val, 64)
 		if err != nil {
@@ -220,6 +225,11 @@ func compare(lhs *yaml.Node, rhs *filterNode) int {
 			panic(err)
 		}
 		return compareFloat64(lhsFloat, rhsFloat)
+	} else if isStringLiteral(rhs) {
+		if lhs.Value == stripFilterStringLiteral(rhs.lexeme) {
+			return 0
+		}
+		return 1 // any non-zero value equally valid
 	}
 	panic("not implemented")
 }
@@ -236,7 +246,7 @@ func compareNodes(lhs *yaml.Node, rhs *yaml.Node) int {
 	return compareFloat64(lhsFloat, rhsFloat)
 }
 
-func compareLiterals(lhs *filterNode, rhs *filterNode) int {
+func compareNumericLiterals(lhs *filterNode, rhs *filterNode) int {
 	if isNumericLiteral(lhs) && isNumericLiteral(rhs) {
 		rhsFloat, err := strconv.ParseFloat(rhs.lexeme.val, 64)
 		if err != nil {
@@ -247,6 +257,16 @@ func compareLiterals(lhs *filterNode, rhs *filterNode) int {
 			panic(err)
 		}
 		return compareFloat64(lhsFloat, rhsFloat)
+	}
+	panic("not implemented")
+}
+
+func compareStringLiterals(lhs *filterNode, rhs *filterNode) int {
+	if isStringLiteral(lhs) && isStringLiteral(rhs) {
+		if lhs.lexeme.val == rhs.lexeme.val {
+			return 0
+		}
+		return 1 // any non-zero value is enough
 	}
 	panic("not implemented")
 }

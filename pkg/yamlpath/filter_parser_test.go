@@ -78,6 +78,33 @@ func TestNewFilterNode(t *testing.T) {
 			},
 		},
 		{
+			name: "numeric comparison filter, root path to literal",
+			lexemes: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeFilterGreaterThan, val: ">"},
+				{typ: lexemeFilterIntegerLiteral, val: "1"},
+			},
+			expected: &filterNode{
+				lexeme:  lexeme{typ: lexemeFilterGreaterThan, val: ">"},
+				subpath: []lexeme{},
+				children: []*filterNode{
+					{
+						lexeme: lexeme{typ: lexemeRoot, val: "$"},
+						subpath: []lexeme{
+							{typ: lexemeDotChild, val: ".child"},
+						},
+						children: []*filterNode{},
+					},
+					{
+						lexeme:   lexeme{typ: lexemeFilterIntegerLiteral, val: "1"},
+						subpath:  []lexeme{},
+						children: []*filterNode{},
+					},
+				},
+			},
+		},
+		{
 			name: "numeric comparison filter, path to path",
 			lexemes: []lexeme{
 				{typ: lexemeFilterAt, val: "@"},
@@ -412,6 +439,47 @@ func TestNewFilterNode(t *testing.T) {
 							{typ: lexemeDotChild, val: ".y"},
 							{typ: lexemeFilterBegin, val: "[?("},
 							{typ: lexemeFilterAt, val: "@"},
+							{typ: lexemeDotChild, val: ".z"},
+							{typ: lexemeFilterEquality, val: "=="},
+							{typ: lexemeFilterIntegerLiteral, val: "1"},
+							{typ: lexemeFilterEnd, val: ")]"},
+							{typ: lexemeDotChild, val: ".w"},
+						},
+						children: []*filterNode{},
+					},
+					{
+						lexeme:   lexeme{typ: lexemeFilterIntegerLiteral, val: "2"},
+						subpath:  []lexeme{},
+						children: []*filterNode{},
+					},
+				},
+			},
+		},
+		{
+			name: "nested filter involving root (edge case)",
+			lexemes: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeDotChild, val: ".y"},
+				{typ: lexemeFilterBegin, val: "[?("},
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeDotChild, val: ".z"},
+				{typ: lexemeFilterEquality, val: "=="},
+				{typ: lexemeFilterIntegerLiteral, val: "1"},
+				{typ: lexemeFilterEnd, val: ")]"},
+				{typ: lexemeDotChild, val: ".w"},
+				{typ: lexemeFilterEquality, val: "=="},
+				{typ: lexemeFilterIntegerLiteral, val: "2"},
+			},
+			expected: &filterNode{
+				lexeme:  lexeme{typ: lexemeFilterEquality, val: "=="},
+				subpath: []lexeme{},
+				children: []*filterNode{
+					{
+						lexeme: lexeme{typ: lexemeRoot, val: "$"},
+						subpath: []lexeme{
+							{typ: lexemeDotChild, val: ".y"},
+							{typ: lexemeFilterBegin, val: "[?("},
+							{typ: lexemeRoot, val: "$"},
 							{typ: lexemeDotChild, val: ".z"},
 							{typ: lexemeFilterEquality, val: "=="},
 							{typ: lexemeFilterIntegerLiteral, val: "1"},

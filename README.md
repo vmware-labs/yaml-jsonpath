@@ -107,7 +107,7 @@ This matches selects a subsequence of each sequence node in the input slice sats
 
 Filter expression are composed of three kinds of term:
 * `@` terms which produce a slice of descendants of the current node being matched (which is a node in one of the input sequences). Any path expression may be appended after the `@` to determine which descendants to include.
-* `$` TBD
+* `$` terms which produce a slice of descendants of the root node. Any path expression may be appended after the `$` to determine which descendants to include.
 * Integer, floating point, and string literals (enclosed in single quotes, e.g. 'x').
 
 Filter expressions combine terms into basic filters of various sorts:

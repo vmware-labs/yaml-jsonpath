@@ -751,6 +751,17 @@ price: 8.95
 			expectedPathErr: "",
 		},
 		{
+			name: "filter involving root",
+			path: "$.store.book[?(@.price > $.store.bicycle.price)]",
+			expectedStrings: []string{`category: fiction
+author: J. R. R. Tolkien
+title: The Lord of the Rings
+isbn: 0-395-19395-8
+price: 22.99
+`},
+			expectedPathErr: "",
+		},
+		{
 			name: "nested filter (edge case)",
 			path: "$.x[?(@.y[?(@.z==1)].w==2)]",
 			expectedStrings: []string{

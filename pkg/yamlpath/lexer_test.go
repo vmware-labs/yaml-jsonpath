@@ -493,6 +493,36 @@ func TestLexer(t *testing.T) {
 			},
 		},
 		{
+			name: "filter integer equality, root path on the right",
+			path: "$[?(@.child==$.x)]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeFilterBegin, val: "[?("},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeFilterEquality, val: "=="},
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeDotChild, val: ".x"},
+				{typ: lexemeFilterEnd, val: ")]"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "filter integer equality, root path on the left",
+			path: "$[?($.x==@.child)]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeFilterBegin, val: "[?("},
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeDotChild, val: ".x"},
+				{typ: lexemeFilterEquality, val: "=="},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeFilterEnd, val: ")]"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
 			name: "filter string equality, literal on the right",
 			path: "$[?(@.child=='x')]",
 			expected: []lexeme{

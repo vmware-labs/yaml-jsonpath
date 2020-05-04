@@ -20,6 +20,7 @@ func TestNewFilter(t *testing.T) {
 		filter    string
 		parseTree *filterNode
 		yamlDoc   string
+		rootDoc   string
 		match     bool
 		focus     bool // if true, run only tests with focus set to true
 	}{
@@ -28,6 +29,7 @@ func TestNewFilter(t *testing.T) {
 			filter:    "",
 			parseTree: nil,
 			yamlDoc:   "",
+			rootDoc:   "",
 			match:     false,
 		},
 		{
@@ -504,6 +506,34 @@ y:
 `,
 			match: false,
 		},
+		{
+			name:   "filter involving root on right, match",
+			filter: "@.price==$.price",
+			yamlDoc: `---
+category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
+`,
+			rootDoc: `---
+price: 8.95
+`,
+			match: true,
+		},
+		{
+			name:   "filter involving root on left, match",
+			filter: "$.price==@.price",
+			yamlDoc: `---
+category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
+`,
+			rootDoc: `---
+price: 8.95
+`,
+			match: true,
+		},
 	}
 
 	focussed := false
@@ -519,12 +549,11 @@ y:
 			continue
 		}
 		t.Run(tc.name, func(t *testing.T) {
-			var n yaml.Node
-			err := yaml.Unmarshal([]byte(tc.yamlDoc), &n)
-			require.NoError(t, err)
+			n := unmarshalDoc(t, tc.yamlDoc)
+			root := unmarshalDoc(t, tc.rootDoc)
 
 			parseTree := parseFilterString(tc.filter)
-			match := newFilter(parseTree)(&n)
+			match := newFilter(parseTree)(n, root)
 			require.Equal(t, tc.match, match)
 		})
 	}
@@ -532,6 +561,13 @@ y:
 	if focussed {
 		t.Fatalf("testcase(s) still focussed")
 	}
+}
+
+func unmarshalDoc(t *testing.T, doc string) *yaml.Node {
+	var n yaml.Node
+	err := yaml.Unmarshal([]byte(doc), &n)
+	require.NoError(t, err)
+	return &n
 }
 
 func parseFilterString(filter string) *filterNode {

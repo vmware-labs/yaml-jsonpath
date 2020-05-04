@@ -249,7 +249,7 @@ func (p *parser) filterTerm() {
 	case lexemeEOF, lexemeError:
 		p.tree = nil
 
-	case lexemeFilterAt:
+	case lexemeFilterAt, lexemeRoot:
 		p.nextLexeme()
 		subpath := []lexeme{}
 		filterNestingLevel := 1
@@ -266,7 +266,7 @@ func (p *parser) filterTerm() {
 					break f
 				}
 			default:
-				// allow any other lexemes in a nested filter
+				// allow any other lexemes only in a nested filter
 				if filterNestingLevel == 1 {
 					break f
 				}
@@ -279,8 +279,6 @@ func (p *parser) filterTerm() {
 			subpath:  subpath,
 			children: []*filterNode{},
 		}
-
-	// TODO: lexemeRoot ($)
 
 	case lexemeFilterIntegerLiteral, lexemeFilterFloatLiteral, lexemeFilterStringLiteral:
 		p.nextLexeme()

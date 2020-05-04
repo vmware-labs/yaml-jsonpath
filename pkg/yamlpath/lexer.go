@@ -639,6 +639,12 @@ func lexFilterTerm(l *lexer) stateFn {
 		return lexSubPath
 	}
 
+	if l.hasPrefix(root) {
+		l.next()
+		l.emit(lexemeRoot)
+		return lexSubPath
+	}
+
 	if nextState, present := lexNumericLiteral(l, lexFilterExpr); present {
 		return nextState
 	}
