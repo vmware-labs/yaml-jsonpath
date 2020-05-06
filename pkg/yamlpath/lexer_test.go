@@ -434,6 +434,30 @@ func TestLexer(t *testing.T) {
 			},
 		},
 		{
+			name: "filter integer equality with invalid float literal",
+			path: "$[?(@.child==1.2.3)]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeFilterBegin, val: "[?("},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeFilterEquality, val: "=="},
+				{typ: lexemeError, val: `invalid float literal "1.2.3": invalid syntax`},
+			},
+		},
+		{
+			name: "filter integer equality with invalid string literal",
+			path: "$[?(@.child=='x)]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeFilterBegin, val: "[?("},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeFilterEquality, val: "=="},
+				{typ: lexemeError, val: `unmatched string delimiter "'" at position 13, following "=="`},
+			},
+		},
+		{
 			name: "filter integer equality, literal on the left",
 			path: "$[?(1==@.child)]",
 			expected: []lexeme{

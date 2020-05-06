@@ -270,6 +270,17 @@ x: 1
 			match: false,
 		},
 		{
+			name:   "numeric comparison filter, path to path, match",
+			filter: "@.x<@.y && @.y==@.z && @.y==@.w",
+			yamlDoc: `---
+x: 1.1
+y: 2
+z: 2.0
+w: 02
+`,
+			match: true,
+		},
+		{
 			name:   "numeric comparison filter, path to path, no match",
 			filter: "@.x>@.y",
 			yamlDoc: `---
@@ -385,6 +396,37 @@ y: [2,3]
 y: [2,3]
 `,
 			match: false,
+		},
+		{
+			name:   "string comparison filter, path to path, match",
+			filter: "@.x==@.y && @x==@z",
+			yamlDoc: `---
+x: 'a'
+y: "a"
+z: a
+`,
+			match: true,
+		},
+		{
+			name:   "string comparison filter, path to path, no match",
+			filter: "@.x==@.y",
+			yamlDoc: `---
+x: a
+y: b
+`,
+			match: false,
+		},
+		{
+			name:    "comparison filter, string literal to numeric literal, no match",
+			filter:  "'x'==7",
+			yamlDoc: "",
+			match:   false,
+		},
+		{
+			name:    "comparison filter, numeric literal to string literal, no match",
+			filter:  "7=='x'",
+			yamlDoc: "",
+			match:   false,
 		},
 		{
 			name:   "existence || existence filter",

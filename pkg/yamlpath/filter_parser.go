@@ -95,6 +95,26 @@ func (n *filterNode) indentedString(indent int) string {
 	return fmt.Sprintf("%s%s%s", i, s, c)
 }
 
+func (n *filterNode) isItemFilter() bool {
+	return n.lexeme.typ == lexemeFilterAt || n.lexeme.typ == lexemeRoot
+}
+
+func (n *filterNode) isLiteral() bool {
+	return n.isStringLiteral() || n.isNumericLiteral() || n.isRegularExpressionLiteral()
+}
+
+func (n *filterNode) isStringLiteral() bool {
+	return n.lexeme.typ == lexemeFilterStringLiteral
+}
+
+func (n *filterNode) isNumericLiteral() bool {
+	return n.lexeme.typ == lexemeFilterFloatLiteral || n.lexeme.typ == lexemeFilterIntegerLiteral
+}
+
+func (n *filterNode) isRegularExpressionLiteral() bool {
+	return n.lexeme.typ == lexemeFilterRegularExpressionLiteral
+}
+
 // parser holds the state of the filter expression parser.
 type parser struct {
 	input []lexeme      // the lexemes being scanned

@@ -8,6 +8,7 @@ package yamlpath
 
 import (
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 	"unicode"
@@ -22,14 +23,63 @@ type lexeme struct {
 	val string
 }
 
-func (i lexeme) String() string {
-	switch i.typ {
+func (l lexeme) String() string {
+	switch l.typ {
 	case lexemeEOF:
 		return "EOF"
+
 	case lexemeError:
-		return i.val
+		return l.val
+
+	default:
+		return fmt.Sprintf("%q", l.val)
 	}
-	return fmt.Sprintf("%q", i.val)
+}
+
+func (l lexeme) literalValue() string {
+	switch l.typ {
+	case lexemeEOF:
+		return "EOF"
+
+	case lexemeFilterStringLiteral:
+		return l.val[1 : len(l.val)-1]
+
+	case lexemeFilterRegularExpressionLiteral:
+		return sanitiseRegularExpressionLiteral(l.val)
+
+	default:
+		return l.val
+	}
+}
+
+func sanitiseRegularExpressionLiteral(re string) string {
+	return strings.ReplaceAll(re[1:len(re)-1], `\/`, `/`)
+
+}
+
+func (l lexeme) comparator() comparator {
+	switch l.typ {
+	case lexemeFilterEquality:
+		return equal
+
+	case lexemeFilterInequality:
+		return notEqual
+
+	case lexemeFilterGreaterThan:
+		return greaterThan
+
+	case lexemeFilterGreaterThanOrEqual:
+		return greaterThanOrEqual
+
+	case lexemeFilterLessThan:
+		return lessThan
+
+	case lexemeFilterLessThanOrEqual:
+		return lessThanOrEqual
+
+	default:
+		return falseComparator
+	}
 }
 
 type lexemeType int
@@ -765,7 +815,7 @@ func lexRegularExpressionLiteral(l *lexer, nextState stateFn) stateFn {
 		}
 	}
 	l.next()
-	if _, err := regex(l.value()); err != nil {
+	if _, err := regexp.Compile(sanitiseRegularExpressionLiteral(l.value())); err != nil {
 		return l.errorf(`invalid regular expression position %d, following %q: %s`, pos, context, err)
 	}
 	l.emit(lexemeFilterRegularExpressionLiteral)
