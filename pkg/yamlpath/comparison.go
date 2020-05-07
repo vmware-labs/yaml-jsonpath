@@ -17,21 +17,6 @@ const (
 	compareIncomparable
 )
 
-func (c comparison) String() string {
-	switch c {
-	case compareLessThan:
-		return "compareLessThan"
-	case compareEqual:
-		return "compareEqual"
-	case compareGreaterThan:
-		return "compareGreaterThan"
-	case compareIncomparable:
-		return "compareIncomparable"
-	default:
-		return "unknown comparison"
-	}
-}
-
 func (c comparison) invertOrdering() comparison {
 	switch c {
 	case compareLessThan:
@@ -41,6 +26,19 @@ func (c comparison) invertOrdering() comparison {
 	default:
 		return c
 	}
+}
+
+type orderingOperator string
+
+const (
+	operatorLessThan           orderingOperator = "<"
+	operatorLessThanOrEqual    orderingOperator = "<="
+	operatorGreaterThan        orderingOperator = ">"
+	operatorGreaterThanOrEqual orderingOperator = ">="
+)
+
+func (o orderingOperator) String() string {
+	return string(o)
 }
 
 type comparator func(comparison) bool
@@ -67,10 +65,6 @@ func lessThan(c comparison) bool {
 
 func lessThanOrEqual(c comparison) bool {
 	return c == compareLessThan || c == compareEqual
-}
-
-func falseComparator(comparison) bool {
-	return false
 }
 
 func compareStrings(a, b string) comparison {

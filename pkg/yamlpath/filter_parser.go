@@ -6,11 +6,6 @@
 
 package yamlpath
 
-import (
-	"fmt"
-	"strings"
-)
-
 /*
    filterNode represents a node of a filter expression parse tree. Each node is labelled with a lexeme.
 
@@ -78,23 +73,6 @@ func newFilterNode(lexemes []lexeme) *filterNode {
 	return newParser(lexemes).parse()
 }
 
-func (n *filterNode) String() string {
-	return "---\n" + n.indentedString(0) + "\n---\n"
-}
-
-func (n *filterNode) indentedString(indent int) string {
-	i := strings.Repeat("    ", indent)
-	s := n.lexeme.val
-	for _, l := range n.subpath {
-		s += l.val
-	}
-	c := ""
-	for _, child := range n.children {
-		c += "\n" + child.indentedString(indent+1)
-	}
-	return fmt.Sprintf("%s%s%s", i, s, c)
-}
-
 func (n *filterNode) isItemFilter() bool {
 	return n.lexeme.typ == lexemeFilterAt || n.lexeme.typ == lexemeRoot
 }
@@ -137,11 +115,8 @@ func (p *parser) push(tree *filterNode) {
 	p.stack = append(p.stack, tree)
 }
 
-// pop pops a prase tree from the stack. If the stack is empty, it panics.
+// pop pops a parse tree from the stack, which must be non-empty.
 func (p *parser) pop() *filterNode {
-	if len(p.stack) == 0 {
-		panic("parser stack underflow")
-	}
 	index := len(p.stack) - 1
 	element := p.stack[index]
 	p.stack = p.stack[:index]
@@ -149,10 +124,8 @@ func (p *parser) pop() *filterNode {
 }
 
 // nextLexeme returns the next item from the input.
+// The caller must peek to ensure there is more input before calling nextLexeme.
 func (p *parser) nextLexeme() lexeme {
-	if p.pos >= len(p.input) {
-		return lexeme{lexemeEOF, ""}
-	}
 	next := p.input[p.pos]
 	p.pos++
 	return next
@@ -219,7 +192,8 @@ func (p *parser) and() {
 // basicFilter consumes then next basic filter and sets it as the parser's tree. If a basic filter it not next, nil is set.
 func (p *parser) basicFilter() {
 	n := p.peek()
-	if n.typ == lexemeFilterNot {
+	switch n.typ {
+	case lexemeFilterNot:
 		p.nextLexeme()
 		p.basicFilter()
 		p.tree = &filterNode{
@@ -230,25 +204,19 @@ func (p *parser) basicFilter() {
 			},
 		}
 		return
-	}
 
-	if n.typ == lexemeFilterOpenBracket {
+	case lexemeFilterOpenBracket:
 		p.nextLexeme()
 		p.expression()
-		if p.peek().typ != lexemeFilterCloseBracket {
-			panic("missing close bracket")
+		if p.peek().typ == lexemeFilterCloseBracket {
+			p.nextLexeme()
 		}
-		p.nextLexeme()
 		return
 	}
 
 	p.filterTerm()
 	n = p.peek()
-	switch n.typ {
-	case lexemeFilterEquality, lexemeFilterInequality,
-		lexemeFilterGreaterThan, lexemeFilterGreaterThanOrEqual,
-		lexemeFilterLessThan, lexemeFilterLessThanOrEqual,
-		lexemeFilterMatchesRegularExpression:
+	if n.typ.isComparisonOrMatch() {
 		p.nextLexeme()
 		filterTerm := p.tree
 		p.filterTerm()
@@ -279,13 +247,19 @@ func (p *parser) filterTerm() {
 			s := p.peek()
 			switch s.typ {
 			case lexemeIdentity, lexemeDotChild, lexemeBracketChild, lexemeRecursiveDescent, lexemeArraySubscript:
+
 			case lexemeFilterBegin:
 				filterNestingLevel++
+
 			case lexemeFilterEnd:
 				filterNestingLevel--
 				if filterNestingLevel == 0 {
 					break f
 				}
+
+			case lexemeEOF:
+				break f
+
 			default:
 				// allow any other lexemes only in a nested filter
 				if filterNestingLevel == 1 {
@@ -308,8 +282,5 @@ func (p *parser) filterTerm() {
 			subpath:  []lexeme{},
 			children: []*filterNode{},
 		}
-
-	default:
-		panic("unexpected lexeme " + n.String())
 	}
 }

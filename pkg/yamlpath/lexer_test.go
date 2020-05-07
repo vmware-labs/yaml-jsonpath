@@ -35,6 +35,14 @@ func TestLexer(t *testing.T) {
 			},
 		},
 		{
+			name: "unmatched closing bracket",
+			path: ")",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeError, val: `syntax error at position 0, following ""`},
+			},
+		},
+		{
 			name: "dot child",
 			path: "$.child",
 			expected: []lexeme{
@@ -131,7 +139,7 @@ func TestLexer(t *testing.T) {
 			expected: []lexeme{
 				{typ: lexemeRoot, val: "$"},
 				{typ: lexemeDotChild, val: ".child"},
-				{typ: lexemeError, val: `invalid character " " at position 7, following ".child"`},
+				{typ: lexemeError, val: `invalid character ' ' at position 7, following ".child"`},
 			},
 		},
 		{
@@ -213,7 +221,7 @@ func TestLexer(t *testing.T) {
 			expected: []lexeme{
 				{typ: lexemeRoot, val: "$"},
 				{typ: lexemeBracketChild, val: "['child']"},
-				{typ: lexemeError, val: `invalid character " " at position 10, following "['child']"`},
+				{typ: lexemeError, val: `invalid character ' ' at position 10, following "['child']"`},
 			},
 		},
 		{
@@ -443,7 +451,38 @@ func TestLexer(t *testing.T) {
 			expected: []lexeme{
 				{typ: lexemeRoot, val: "$"},
 				{typ: lexemeFilterBegin, val: "[?("},
-				{typ: lexemeError, val: `invalid filter syntax: missing )] at position 4, following "[?("`},
+				{typ: lexemeError, val: `invalid filter syntax at position 4, following "[?("`},
+			},
+		},
+		{
+			name: "filter with missing operator",
+			path: "$[?(@.child @.other)]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeFilterBegin, val: "[?("},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeError, val: `invalid filter expression at position 12, following ".child "`},
+			},
+		},
+		{
+			name: "filter with malformed term",
+			path: "$[?([)]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeFilterBegin, val: "[?("},
+				{typ: lexemeError, val: `invalid filter syntax at position 4, following "[?("`},
+			},
+		},
+		{
+			name: "filter with misplaced open bracket",
+			path: "$[?(@.child ()]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeFilterBegin, val: "[?("},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeError, val: `invalid filter expression at position 12, following ".child "`},
 			},
 		},
 		{
@@ -467,7 +506,7 @@ func TestLexer(t *testing.T) {
 				{typ: lexemeFilterBegin, val: "[?("},
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".child"},
-				{typ: lexemeError, val: `invalid filter syntax starting at "!" at position 12, following ".child "`},
+				{typ: lexemeError, val: `invalid filter expression at position 12, following ".child "`},
 			},
 		},
 		{
@@ -613,7 +652,7 @@ func TestLexer(t *testing.T) {
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".child"},
 				{typ: lexemeFilterEquality, val: "=="},
-				{typ: lexemeError, val: `missing filter term at position 13, following "=="`},
+				{typ: lexemeError, val: `invalid filter term at position 13, following "=="`},
 			},
 		},
 		{
@@ -727,7 +766,7 @@ func TestLexer(t *testing.T) {
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".child"},
 				{typ: lexemeFilterInequality, val: "!="},
-				{typ: lexemeError, val: `missing filter term at position 13, following "!="`},
+				{typ: lexemeError, val: `invalid filter term at position 13, following "!="`},
 			},
 		},
 		{
@@ -791,7 +830,7 @@ func TestLexer(t *testing.T) {
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".child"},
 				{typ: lexemeFilterGreaterThan, val: ">"},
-				{typ: lexemeError, val: `missing filter term at position 12, following ">"`},
+				{typ: lexemeError, val: `invalid filter term at position 12, following ">"`},
 			},
 		},
 		{
@@ -862,7 +901,7 @@ func TestLexer(t *testing.T) {
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".child"},
 				{typ: lexemeFilterGreaterThanOrEqual, val: ">="},
-				{typ: lexemeError, val: `missing filter term at position 13, following ">="`},
+				{typ: lexemeError, val: `invalid filter term at position 13, following ">="`},
 			},
 		},
 		{
@@ -933,7 +972,7 @@ func TestLexer(t *testing.T) {
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".child"},
 				{typ: lexemeFilterLessThan, val: "<"},
-				{typ: lexemeError, val: `missing filter term at position 12, following "<"`},
+				{typ: lexemeError, val: `invalid filter term at position 12, following "<"`},
 			},
 		},
 		{
@@ -1004,7 +1043,7 @@ func TestLexer(t *testing.T) {
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".child"},
 				{typ: lexemeFilterLessThanOrEqual, val: "<="},
-				{typ: lexemeError, val: `missing filter term at position 13, following "<="`},
+				{typ: lexemeError, val: `invalid filter term at position 13, following "<="`},
 			},
 		},
 		{
@@ -1288,7 +1327,7 @@ func TestLexer(t *testing.T) {
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".child"},
 				{typ: lexemeFilterMatchesRegularExpression, val: "=~"},
-				{typ: lexemeError, val: `unmatched regular expression delimiter "/" at position 13, following "=~"`},
+				{typ: lexemeError, val: `unmatched regular expression delimiter / at position 13, following "=~"`},
 			},
 		},
 		{
@@ -1298,7 +1337,7 @@ func TestLexer(t *testing.T) {
 				{typ: lexemeRoot, val: "$"},
 				{typ: lexemeFilterBegin, val: "[?("},
 				{typ: lexemeFilterStringLiteral, val: "'x'"},
-				{typ: lexemeError, val: `literal cannot be matched using =~ starting at "=" at position 7, following "'x'"`},
+				{typ: lexemeError, val: `literal cannot be matched using =~ at position 7, following "'x'"`},
 			},
 		},
 		{
@@ -1308,7 +1347,7 @@ func TestLexer(t *testing.T) {
 				{typ: lexemeRoot, val: "$"},
 				{typ: lexemeFilterBegin, val: "[?("},
 				{typ: lexemeFilterIntegerLiteral, val: "0"},
-				{typ: lexemeError, val: `literal cannot be matched using =~ starting at "=" at position 5, following "0"`},
+				{typ: lexemeError, val: `literal cannot be matched using =~ at position 5, following "0"`},
 			},
 		},
 		{
@@ -1318,7 +1357,7 @@ func TestLexer(t *testing.T) {
 				{typ: lexemeRoot, val: "$"},
 				{typ: lexemeFilterBegin, val: "[?("},
 				{typ: lexemeFilterFloatLiteral, val: ".1"},
-				{typ: lexemeError, val: `literal cannot be matched using =~ starting at "=" at position 6, following ".1"`},
+				{typ: lexemeError, val: `literal cannot be matched using =~ at position 6, following ".1"`},
 			},
 		},
 		{
@@ -1358,6 +1397,120 @@ func TestLexer(t *testing.T) {
 				actual = append(actual, lexeme)
 			}
 			require.Equal(t, tc.expected, actual)
+		})
+	}
+
+	if focussed {
+		t.Fatalf("testcase(s) still focussed")
+	}
+}
+
+func TestLexemeTypeComparators(t *testing.T) {
+	cases := []struct {
+		name        string
+		lexemeType  lexemeType
+		comparisons map[comparison]bool // can't compare functions, so need to test the function behaviour
+		expectPanic bool
+		focus       bool // if true, run only tests with focus set to true
+	}{
+		{
+			name:       "equal",
+			lexemeType: lexemeFilterEquality,
+			comparisons: map[comparison]bool{
+				compareLessThan:     false,
+				compareEqual:        true,
+				compareGreaterThan:  false,
+				compareIncomparable: false,
+			},
+		},
+		{
+			name:       "notEqual",
+			lexemeType: lexemeFilterInequality,
+			comparisons: map[comparison]bool{
+				compareLessThan:     true,
+				compareEqual:        false,
+				compareGreaterThan:  true,
+				compareIncomparable: true,
+			},
+		},
+		{
+			name:       "greaterThan",
+			lexemeType: lexemeFilterGreaterThan,
+			comparisons: map[comparison]bool{
+				compareLessThan:     false,
+				compareEqual:        false,
+				compareGreaterThan:  true,
+				compareIncomparable: false,
+			},
+		},
+		{
+			name:       "greaterThanOrEqual",
+			lexemeType: lexemeFilterGreaterThanOrEqual,
+			comparisons: map[comparison]bool{
+				compareLessThan:     false,
+				compareEqual:        true,
+				compareGreaterThan:  true,
+				compareIncomparable: false,
+			},
+		},
+		{
+			name:       "lessThan",
+			lexemeType: lexemeFilterLessThan,
+			comparisons: map[comparison]bool{
+				compareLessThan:     true,
+				compareEqual:        false,
+				compareGreaterThan:  false,
+				compareIncomparable: false,
+			},
+		},
+		{
+			name:       "lessThanOrEqual",
+			lexemeType: lexemeFilterLessThanOrEqual,
+			comparisons: map[comparison]bool{
+				compareLessThan:     true,
+				compareEqual:        true,
+				compareGreaterThan:  false,
+				compareIncomparable: false,
+			},
+		},
+		{
+			name:       "non-comparator lexeme",
+			lexemeType: lexemeEOF,
+			comparisons: map[comparison]bool{
+				compareLessThan:     false,
+				compareEqual:        false,
+				compareGreaterThan:  false,
+				compareIncomparable: false,
+			},
+			expectPanic: true,
+		},
+	}
+
+	focussed := false
+	for _, tc := range cases {
+		if tc.focus {
+			focussed = true
+			break
+		}
+	}
+
+	for _, tc := range cases {
+		if focussed && !tc.focus {
+			continue
+		}
+		t.Run(tc.name, func(t *testing.T) {
+			panicked := func() (panicked bool) {
+				defer func() {
+					if recover() != nil {
+						panicked = true
+					}
+				}()
+				for comparison, result := range tc.comparisons {
+					require.Equal(t, result, tc.lexemeType.comparator()(comparison), "%v", comparison)
+				}
+				return false
+			}()
+			require.Equal(t, tc.expectPanic, panicked, "panic")
 		})
 	}
 

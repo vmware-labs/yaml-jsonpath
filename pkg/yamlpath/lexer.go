@@ -17,75 +17,10 @@ import (
 
 // This lexer was based on Rob Pike's talk "Lexical Scanning in Go" (https://talks.golang.org/2011/lex.slide#1)
 
-// a lexeme is a token returned from the lexer
-type lexeme struct {
-	typ lexemeType
-	val string
-}
-
-func (l lexeme) String() string {
-	switch l.typ {
-	case lexemeEOF:
-		return "EOF"
-
-	case lexemeError:
-		return l.val
-
-	default:
-		return fmt.Sprintf("%q", l.val)
-	}
-}
-
-func (l lexeme) literalValue() string {
-	switch l.typ {
-	case lexemeEOF:
-		return "EOF"
-
-	case lexemeFilterStringLiteral:
-		return l.val[1 : len(l.val)-1]
-
-	case lexemeFilterRegularExpressionLiteral:
-		return sanitiseRegularExpressionLiteral(l.val)
-
-	default:
-		return l.val
-	}
-}
-
-func sanitiseRegularExpressionLiteral(re string) string {
-	return strings.ReplaceAll(re[1:len(re)-1], `\/`, `/`)
-
-}
-
-func (l lexeme) comparator() comparator {
-	switch l.typ {
-	case lexemeFilterEquality:
-		return equal
-
-	case lexemeFilterInequality:
-		return notEqual
-
-	case lexemeFilterGreaterThan:
-		return greaterThan
-
-	case lexemeFilterGreaterThanOrEqual:
-		return greaterThanOrEqual
-
-	case lexemeFilterLessThan:
-		return lessThan
-
-	case lexemeFilterLessThanOrEqual:
-		return lessThanOrEqual
-
-	default:
-		return falseComparator
-	}
-}
-
 type lexemeType int
 
 const (
-	lexemeError lexemeType = iota // lexing error (error message is the lexeme value)
+	lexemeError lexemeType = iota
 	lexemeIdentity
 	lexemeRoot
 	lexemeDotChild
@@ -113,6 +48,70 @@ const (
 	lexemeFilterRegularExpressionLiteral
 	lexemeEOF // lexing complete
 )
+
+func (t lexemeType) comparator() comparator {
+	switch t {
+	case lexemeFilterEquality:
+		return equal
+
+	case lexemeFilterInequality:
+		return notEqual
+
+	case lexemeFilterGreaterThan:
+		return greaterThan
+
+	case lexemeFilterGreaterThanOrEqual:
+		return greaterThanOrEqual
+
+	case lexemeFilterLessThan:
+		return lessThan
+
+	case lexemeFilterLessThanOrEqual:
+		return lessThanOrEqual
+
+	default:
+		panic(fmt.Sprintf("invalid comparator %d", t)) // should never happen
+	}
+}
+
+func (t lexemeType) isComparisonOrMatch() bool {
+	switch t {
+	case lexemeFilterEquality, lexemeFilterInequality,
+		lexemeFilterGreaterThan, lexemeFilterGreaterThanOrEqual,
+		lexemeFilterLessThan, lexemeFilterLessThanOrEqual,
+		lexemeFilterMatchesRegularExpression:
+		return true
+	}
+	return false
+}
+
+// a lexeme is a token returned from the lexer
+type lexeme struct {
+	typ lexemeType
+	val string // original lexeme or error message if typ is lexemeError
+}
+
+func (l lexeme) literalValue() string {
+	switch l.typ {
+	case lexemeFilterStringLiteral:
+		return l.val[1 : len(l.val)-1]
+
+	case lexemeFilterRegularExpressionLiteral:
+		return sanitiseRegularExpressionLiteral(l.val)
+
+	default:
+		return l.val
+	}
+}
+
+func sanitiseRegularExpressionLiteral(re string) string {
+	return strings.ReplaceAll(re[1:len(re)-1], `\/`, `/`)
+
+}
+
+func (l lexeme) comparator() comparator {
+	return l.typ.comparator()
+}
 
 // stateFn represents the state of the lexer as a function that returns the next state.
 // A nil stateFn indicates lexing is complete.
@@ -153,7 +152,7 @@ func (l *lexer) push(state stateFn) {
 // pop pops a state function from the stack. If the stack is empty, returns an error function.
 func (l *lexer) pop() stateFn {
 	if len(l.stack) == 0 {
-		return l.errorf("lexer stack underflow")
+		return l.errorf("syntax error")
 	}
 	index := len(l.stack) - 1
 	element := l.stack[index]
@@ -194,6 +193,29 @@ func (l *lexer) next() (rune rune) {
 	rune, l.width = utf8.DecodeRuneInString(l.input[l.pos:])
 	l.pos += l.width
 	return rune
+}
+
+// consume consumes as many runes as there are in the given string
+func (l *lexer) consume(s string) {
+	for range s {
+		l.next()
+	}
+}
+
+// consumed checks the input to see if it starts with the given token and does
+// not start with any of the given exceptions. If so, it consumes the given
+// token and returns true. Otherwise, it returns false.
+func (l *lexer) consumed(token string, except ...string) bool {
+	if l.hasPrefix(token) {
+		for _, e := range except {
+			if l.hasPrefix(e) {
+				return false
+			}
+		}
+		l.consume(token)
+		return true
+	}
+	return false
 }
 
 // peek returns the next rune in the input but without consuming it.
@@ -250,16 +272,6 @@ func (l *lexer) context() string {
 	return l.input[l.lastEmittedStart:l.pos]
 }
 
-// nextChar returns the next character in the input
-func (l *lexer) nextChar() string {
-	if l.pos >= len(l.input) {
-		return ""
-	}
-	b := []byte(l.input[l.pos:])
-	_, size := utf8.DecodeRune(b)
-	return string(b[:size])
-}
-
 // emitSynthetic passes a lexeme back to the client which wasn't encountered in the input.
 // The lexing position is not modified.
 func (l *lexer) emitSynthetic(typ lexemeType, val string) {
@@ -312,16 +324,24 @@ const (
 	filterDisjunction                       string = "||"
 	filterEquality                          string = "=="
 	filterInequality                        string = "!="
-	filterGreaterThan                       string = ">"
-	filterGreaterThanOrEqual                string = ">="
-	filterLessThan                          string = "<"
-	filterLessThanOrEqual                   string = "<="
 	filterMatchesRegularExpression          string = "=~"
 	filterStringLiteralDelimiter            string = "'"
 	filterRegularExpressionLiteralDelimiter string = "/"
 	filterRegularExpressionEscape           string = `\`
 	recursiveDescent                        string = ".."
 )
+
+var orderingOperators []orderingOperator
+
+func init() {
+	// list the ordering operators in an order suitable for lexing
+	orderingOperators = []orderingOperator{
+		operatorGreaterThanOrEqual,
+		operatorGreaterThan,
+		operatorLessThanOrEqual,
+		operatorLessThan,
+	}
+}
 
 func lexPath(l *lexer) stateFn {
 	if l.empty() {
@@ -357,9 +377,7 @@ func lexSubPath(l *lexer) stateFn {
 		l.emit(lexemeEOF)
 		return nil
 
-	case l.hasPrefix(recursiveDescent):
-		l.next()
-		l.next()
+	case l.consumed(recursiveDescent):
 		childName := false
 		for {
 			le := l.next()
@@ -375,8 +393,7 @@ func lexSubPath(l *lexer) stateFn {
 		l.emit(lexemeRecursiveDescent)
 		return lexSubPath
 
-	case l.hasPrefix(dot):
-		l.next()
+	case l.consumed(dot):
 		childName := false
 		for {
 			le := l.next()
@@ -393,18 +410,13 @@ func lexSubPath(l *lexer) stateFn {
 
 		return lexOptionalArrayIndex
 
-	case l.hasPrefix(bracketQuote):
-		l.next()
-		l.next()
+	case l.consumed(bracketQuote):
 		childName := false
 		for {
-			if l.hasPrefix(quoteBracket) {
-				l.next()
-				l.next()
+			if l.consumed(quoteBracket) {
 				break
 			}
-			le := l.next()
-			if le == eof {
+			if l.next() == eof {
 				return l.errorf("unmatched ['")
 			}
 			childName = true
@@ -416,10 +428,7 @@ func lexSubPath(l *lexer) stateFn {
 
 		return lexOptionalArrayIndex
 
-	case l.hasPrefix(filterBegin):
-		l.next()
-		l.next()
-		l.next()
+	case l.consumed(filterBegin):
 		l.emit(lexemeFilterBegin)
 		l.push(lexFilterEnd)
 		return lexFilterExprInitial
@@ -430,22 +439,19 @@ func lexSubPath(l *lexer) stateFn {
 }
 
 func lexOptionalArrayIndex(l *lexer) stateFn {
-	if l.hasPrefix(leftBracket) && !l.hasPrefix(bracketQuote) && !l.hasPrefix(filterBegin) {
-		l.next()
+	if l.consumed(leftBracket, bracketQuote, filterBegin) {
 		subscript := false
 		for {
-			if l.hasPrefix(rightBracket) {
-				l.next()
+			if l.consumed(rightBracket) {
 				break
 			}
-			le := l.next()
-			if le == eof {
-				return l.errorf("unmatched [")
+			if l.next() == eof {
+				return l.errorf("unmatched %s", leftBracket)
 			}
 			subscript = true
 		}
 		if !subscript {
-			return l.rawErrorf("subscript missing from [] before position %d", l.pos)
+			return l.rawErrorf("subscript missing from %s%s before position %d", leftBracket, rightBracket, l.pos)
 		}
 		if !validateArrayIndex(l) {
 			return nil
@@ -456,7 +462,7 @@ func lexOptionalArrayIndex(l *lexer) stateFn {
 	le := l.peek()
 	if le == ' ' || le == '&' || le == '|' || le == '=' || le == '!' || le == '>' || le == '<' {
 		if l.emptyStack() {
-			return l.errorf("invalid character %q", l.nextChar())
+			return l.errorf("invalid character %q", l.peek())
 		}
 		return l.pop()
 	}
@@ -476,33 +482,24 @@ func lexFilterExprInitial(l *lexer) stateFn {
 	}
 
 	switch {
-	case l.hasPrefix(filterOpenBracket):
-		l.next()
+	case l.consumed(filterOpenBracket):
 		l.emit(lexemeFilterOpenBracket)
 		l.push(lexFilterExpr)
 		return lexFilterExprInitial
 
-	case l.hasPrefix(filterCloseBracket) && !l.hasPrefix(filterEnd): // ) which is not part of )]
-		l.next()
-		l.emit(lexemeFilterCloseBracket)
-		return l.pop()
-
 	case l.hasPrefix(filterInequality):
 		return l.errorf("missing first operand for binary operator !=")
 
-	case l.hasPrefix(filterNot):
-		l.next()
+	case l.consumed(filterNot):
 		l.emit(lexemeFilterNot)
 		return lexFilterExprInitial
 
-	case l.hasPrefix(filterAt):
-		l.next()
+	case l.consumed(filterAt):
 		l.emit(lexemeFilterAt)
 		l.push(lexFilterExpr)
 		return lexSubPath
 
-	case l.hasPrefix(root):
-		l.next()
+	case l.consumed(root):
 		l.emit(lexemeRoot)
 		l.push(lexFilterExpr)
 		return lexSubPath
@@ -515,22 +512,15 @@ func lexFilterExprInitial(l *lexer) stateFn {
 
 	case l.hasPrefix(filterEquality):
 		return l.errorf("missing first operand for binary operator ==")
-
-	case l.hasPrefix(filterGreaterThanOrEqual):
-		return l.errorf("missing first operand for binary operator >=")
-
-	case l.hasPrefix(filterGreaterThan):
-		return l.errorf("missing first operand for binary operator >")
-
-	case l.hasPrefix(filterLessThanOrEqual):
-		return l.errorf("missing first operand for binary operator <=")
-
-	case l.hasPrefix(filterLessThan):
-		return l.errorf("missing first operand for binary operator <")
-
-	default:
-		return l.pop()
 	}
+
+	for _, o := range orderingOperators {
+		if l.hasPrefix(o.String()) {
+			return l.errorf("missing first operand for binary operator %s", o)
+		}
+	}
+
+	return l.pop()
 }
 
 func lexFilterExpr(l *lexer) stateFn {
@@ -540,144 +530,63 @@ func lexFilterExpr(l *lexer) stateFn {
 	case l.empty():
 		return l.errorf("missing end of filter")
 
-	case l.hasPrefix(filterEnd):
+	case l.hasPrefix(filterEnd): // this will be consumed by the popped state function
 		return l.pop()
 
-	case l.hasPrefix(filterOpenBracket):
-		l.next()
-		l.emit(lexemeFilterOpenBracket)
-		l.push(lexFilterExpr)
-		return lexFilterExprInitial
-
-	case l.hasPrefix(filterCloseBracket):
-		l.next()
+	case l.consumed(filterCloseBracket):
 		l.emit(lexemeFilterCloseBracket)
 		return l.pop()
 
-	case l.hasPrefix(filterAt):
-		l.next()
-		l.emit(lexemeFilterAt)
-		l.push(lexFilterExpr)
-		return lexSubPath
-
-	case l.hasPrefix(filterConjunction):
-		l.next()
-		l.next()
+	case l.consumed(filterConjunction):
 		l.emit(lexemeFilterAnd)
 		l.stripWhitespace()
 		return lexFilterExprInitial
 
-	case l.hasPrefix(filterDisjunction):
-		l.next()
-		l.next()
+	case l.consumed(filterDisjunction):
 		l.emit(lexemeFilterOr)
 		l.stripWhitespace()
 		return lexFilterExprInitial
 
-	case l.hasPrefix(filterEquality):
-		l.next()
-		l.next()
+	case l.consumed(filterEquality):
 		l.emit(lexemeFilterEquality)
 		l.push(lexFilterExpr)
 		return lexFilterTerm
 
-	case l.hasPrefix(filterInequality):
-		l.next()
-		l.next()
+	case l.consumed(filterInequality):
 		l.emit(lexemeFilterInequality)
-		l.push(lexFilterExpr)
-		return lexFilterTerm
-
-	case l.hasPrefix(filterGreaterThanOrEqual):
-		if strings.HasPrefix(l.context(), filterStringLiteralDelimiter) {
-			return l.errorf("strings cannot be compared using >=")
-		}
-		l.next()
-		l.next()
-		l.emit(lexemeFilterGreaterThanOrEqual)
-
-		l.stripWhitespace()
-		if l.hasPrefix(filterStringLiteralDelimiter) {
-			return l.errorf("strings cannot be compared using >=")
-		}
-
-		l.push(lexFilterExpr)
-		return lexFilterTerm
-
-	case l.hasPrefix(filterGreaterThan):
-		if strings.HasPrefix(l.context(), filterStringLiteralDelimiter) {
-			return l.errorf("strings cannot be compared using >")
-		}
-		l.next()
-		l.emit(lexemeFilterGreaterThan)
-
-		l.stripWhitespace()
-		if l.hasPrefix(filterStringLiteralDelimiter) {
-			return l.errorf("strings cannot be compared using >")
-		}
-
-		l.push(lexFilterExpr)
-		return lexFilterTerm
-
-	case l.hasPrefix(filterLessThanOrEqual):
-		if strings.HasPrefix(l.context(), filterStringLiteralDelimiter) {
-			return l.errorf("strings cannot be compared using <=")
-		}
-		l.next()
-		l.next()
-		l.emit(lexemeFilterLessThanOrEqual)
-
-		l.stripWhitespace()
-		if l.hasPrefix(filterStringLiteralDelimiter) {
-			return l.errorf("strings cannot be compared using <=")
-		}
-
-		l.push(lexFilterExpr)
-		return lexFilterTerm
-
-	case l.hasPrefix(filterLessThan):
-		if strings.HasPrefix(l.context(), filterStringLiteralDelimiter) {
-			return l.errorf("strings cannot be compared using <")
-		}
-		l.next()
-		l.emit(lexemeFilterLessThan)
-
-		l.stripWhitespace()
-		if l.hasPrefix(filterStringLiteralDelimiter) {
-			return l.errorf("strings cannot be compared using <")
-		}
-
 		l.push(lexFilterExpr)
 		return lexFilterTerm
 
 	case l.hasPrefix(filterMatchesRegularExpression):
 		switch l.lastEmittedLexemeType {
 		case lexemeFilterStringLiteral, lexemeFilterIntegerLiteral, lexemeFilterFloatLiteral:
-			return l.errorf("literal cannot be matched using =~ starting at %q", l.nextChar())
+			return l.errorf("literal cannot be matched using %s", filterMatchesRegularExpression)
 		}
-		l.next()
-		l.next()
+		l.consume(filterMatchesRegularExpression)
 		l.emit(lexemeFilterMatchesRegularExpression)
 
 		l.stripWhitespace()
 		return lexRegularExpressionLiteral(l, lexFilterExpr)
-
-	default:
-		return l.errorf("invalid filter syntax starting at %q", l.nextChar())
 	}
+
+	for _, o := range orderingOperators {
+		if l.hasPrefix(o.String()) {
+			return lexComparison(l, o)
+		}
+	}
+
+	return l.errorf("invalid filter expression")
 }
 
 func lexFilterTerm(l *lexer) stateFn {
 	l.stripWhitespace()
 
-	if l.hasPrefix(filterAt) {
-		l.next()
+	if l.consumed(filterAt) {
 		l.emit(lexemeFilterAt)
 		return lexSubPath
 	}
 
-	if l.hasPrefix(root) {
-		l.next()
+	if l.consumed(root) {
 		l.emit(lexemeRoot)
 		return lexSubPath
 	}
@@ -690,10 +599,6 @@ func lexFilterTerm(l *lexer) stateFn {
 		return nextState
 	}
 
-	if l.hasPrefix(filterEnd) || l.hasPrefix(filterCloseBracket) {
-		return l.errorf("missing filter term")
-	}
-
 	return l.errorf("invalid filter term")
 }
 
@@ -702,13 +607,12 @@ func lexFilterEnd(l *lexer) stateFn {
 		if l.lastEmittedLexemeType == lexemeFilterBegin {
 			return l.errorf("missing filter")
 		}
-		l.next()
-		l.next()
+		l.consume(filterEnd)
 		l.emit(lexemeFilterEnd)
 		return lexSubPath
 	}
 
-	return l.errorf("invalid filter syntax: missing %s", filterEnd)
+	return l.errorf("invalid filter syntax")
 }
 
 func validateArrayIndex(l *lexer) bool {
@@ -787,16 +691,43 @@ func lexStringLiteral(l *lexer, nextState stateFn) (stateFn, bool) {
 	return nil, false
 }
 
+var comparisonOperatorLexeme map[orderingOperator]lexemeType
+
+func init() {
+	comparisonOperatorLexeme = map[orderingOperator]lexemeType{
+		operatorGreaterThan:        lexemeFilterGreaterThan,
+		operatorGreaterThanOrEqual: lexemeFilterGreaterThanOrEqual,
+		operatorLessThan:           lexemeFilterLessThan,
+		operatorLessThanOrEqual:    lexemeFilterLessThanOrEqual,
+	}
+}
+
+func lexComparison(l *lexer, comparisonOperator orderingOperator) stateFn {
+	if l.lastEmittedLexemeType == lexemeFilterStringLiteral {
+		return l.errorf("strings cannot be compared using %s", comparisonOperator)
+	}
+	l.consume(comparisonOperator.String())
+	l.emit(comparisonOperatorLexeme[comparisonOperator])
+
+	l.stripWhitespace()
+	if l.hasPrefix(filterStringLiteralDelimiter) {
+		return l.errorf("strings cannot be compared using %s", comparisonOperator)
+	}
+
+	l.push(lexFilterExpr)
+	return lexFilterTerm
+}
+
 func lexRegularExpressionLiteral(l *lexer, nextState stateFn) stateFn {
 	if !l.hasPrefix(filterRegularExpressionLiteralDelimiter) {
-		return l.errorf("regular expression does not start with /")
+		return l.errorf("regular expression does not start with %s", filterRegularExpressionLiteralDelimiter)
 	}
 	pos := l.pos
 	context := l.context()
 	escape := false
 	for {
 		if l.next() == eof {
-			return l.rawErrorf(`unmatched regular expression delimiter "/" at position %d, following %q`, pos, context)
+			return l.rawErrorf(`unmatched regular expression delimiter %s at position %d, following %q`, filterRegularExpressionLiteralDelimiter, pos, context)
 		}
 		if !escape && l.hasPrefix(filterRegularExpressionLiteralDelimiter) {
 			break

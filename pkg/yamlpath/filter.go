@@ -152,9 +152,7 @@ func literalFilterScanner(n *filterNode) filterScanner {
 }
 
 func matchRegularExpression(parseTree *filterNode) filter {
-	return nodeToFilter(parseTree, func(m, n string) bool {
-		return stringMatchesRegularExpression(m, n)
-	})
+	return nodeToFilter(parseTree, stringMatchesRegularExpression)
 }
 
 func stringMatchesRegularExpression(s, expr string) bool {

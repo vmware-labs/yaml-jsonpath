@@ -81,16 +81,6 @@ func TestComparators(t *testing.T) {
 			},
 		},
 		{
-			name:       "falseComparator",
-			comparator: falseComparator,
-			comparisons: map[comparison]bool{
-				compareLessThan:     false,
-				compareEqual:        false,
-				compareGreaterThan:  false,
-				compareIncomparable: false,
-			},
-		},
-		{
 			name:       "string equal",
 			comparator: equal,
 			comparisons: map[comparison]bool{
@@ -297,56 +287,6 @@ func TestInvertOrdering(t *testing.T) {
 		}
 		t.Run(tc.name, func(t *testing.T) {
 			require.Equal(t, tc.result, tc.comparison.invertOrdering())
-		})
-	}
-
-	if focussed {
-		t.Fatalf("testcase(s) still focussed")
-	}
-}
-
-func TestComparisonString(t *testing.T) {
-	cases := []struct {
-		name       string
-		comparison comparison
-		focus      bool // if true, run only tests with focus set to true
-	}{
-		{
-			name:       "compareLessThan",
-			comparison: compareLessThan,
-		},
-		{
-			name:       "compareEqual",
-			comparison: compareEqual,
-		},
-		{
-			name:       "compareGreaterThan",
-			comparison: compareGreaterThan,
-		},
-		{
-			name:       "compareIncomparable",
-			comparison: compareIncomparable,
-		},
-		{
-			name:       "unknown comparison",
-			comparison: comparison(-1),
-		},
-	}
-
-	focussed := false
-	for _, tc := range cases {
-		if tc.focus {
-			focussed = true
-			break
-		}
-	}
-
-	for _, tc := range cases {
-		if focussed && !tc.focus {
-			continue
-		}
-		t.Run(tc.name, func(t *testing.T) {
-			require.Equal(t, tc.name, tc.comparison.String())
 		})
 	}
 

@@ -243,7 +243,7 @@ feather duster:
 		{
 			name:            "dot child with embedded space",
 			path:            "$.store.feather duster.price",
-			expectedPathErr: `invalid character " " at position 15, following ".feather"`,
+			expectedPathErr: `invalid character ' ' at position 15, following ".feather"`,
 		},
 		{
 			name: "bracket child",

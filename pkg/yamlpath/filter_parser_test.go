@@ -8,6 +8,7 @@ package yamlpath
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -630,6 +631,54 @@ func TestNewFilterNode(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "incomplete term (edge case, garbage in garbage out)",
+			lexemes: []lexeme{
+				{typ: lexemeFilterAt, val: "@"},
+			},
+			expected: &filterNode{
+				lexeme:   lexeme{typ: lexemeFilterAt, val: "@"},
+				subpath:  []lexeme{},
+				children: []*filterNode{},
+			},
+		},
+		{
+			name: "unclosed parentheses (edge case, garbage in garbage out)",
+			lexemes: []lexeme{
+				{typ: lexemeFilterOpenBracket, val: "("},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child"},
+			},
+			expected: &filterNode{
+				lexeme: lexeme{typ: lexemeFilterAt, val: "@"},
+				subpath: []lexeme{
+					{typ: lexemeDotChild, val: ".child"},
+				},
+				children: []*filterNode{},
+			},
+		},
+		{
+			name: "unexpected end of nested filter (edge case, garbage in garbage out)",
+			lexemes: []lexeme{
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".y"},
+				{typ: lexemeFilterEnd, val: ")]"},
+			},
+			expected: &filterNode{
+				lexeme: lexeme{typ: lexemeFilterAt, val: "@"},
+				subpath: []lexeme{
+					{typ: lexemeDotChild, val: ".y"},
+				},
+				children: []*filterNode{},
+			},
+		},
+		{
+			name: "unexpected close bracket (edge case, garbage in garbage out)",
+			lexemes: []lexeme{
+				{typ: lexemeFilterCloseBracket, val: ")"},
+			},
+			expected: nil,
+		},
 	}
 
 	focussed := false
@@ -660,4 +709,22 @@ func TestNewFilterNode(t *testing.T) {
 	if focussed {
 		t.Fatalf("testcase(s) still focussed")
 	}
+}
+
+// String is only used by tests
+func (n *filterNode) String() string {
+	return "---\n" + n.indentedString(0) + "\n---\n"
+}
+
+func (n *filterNode) indentedString(indent int) string {
+	i := strings.Repeat("    ", indent)
+	s := n.lexeme.val
+	for _, l := range n.subpath {
+		s += l.val
+	}
+	c := ""
+	for _, child := range n.children {
+		c += "\n" + child.indentedString(indent+1)
+	}
+	return fmt.Sprintf("%s%s%s", i, s, c)
 }
