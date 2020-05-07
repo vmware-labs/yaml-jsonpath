@@ -57,7 +57,7 @@ func TestLexer(t *testing.T) {
 			path: "$.",
 			expected: []lexeme{
 				{typ: lexemeRoot, val: "$"},
-				{typ: lexemeError, val: "child name missing after ."},
+				{typ: lexemeError, val: `child name missing at position 2, following "$."`},
 			},
 		},
 		{
@@ -66,7 +66,7 @@ func TestLexer(t *testing.T) {
 			expected: []lexeme{
 				{typ: lexemeRoot, val: "$"},
 				{typ: lexemeDotChild, val: ".child"},
-				{typ: lexemeError, val: "child name missing after ."},
+				{typ: lexemeError, val: `child name missing at position 8, following ".child."`},
 			},
 		},
 		{
@@ -95,7 +95,7 @@ func TestLexer(t *testing.T) {
 			expected: []lexeme{
 				{typ: lexemeRoot, val: "$"},
 				{typ: lexemeDotChild, val: ".child"},
-				{typ: lexemeError, val: "invalid array index, too many colons: [1:2:3:4]"},
+				{typ: lexemeError, val: "invalid array index, too many colons: [1:2:3:4] before position 16"},
 			},
 		},
 		{
@@ -104,7 +104,34 @@ func TestLexer(t *testing.T) {
 			expected: []lexeme{
 				{typ: lexemeRoot, val: "$"},
 				{typ: lexemeDotChild, val: ".child"},
-				{typ: lexemeError, val: "invalid array index containing non-integer value: [1:2:a]"},
+				{typ: lexemeError, val: "invalid array index containing non-integer value: [1:2:a] before position 14"},
+			},
+		},
+		{
+			name: "dot child with unclosed array subscript",
+			path: "$.child[*",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeError, val: `unmatched [ at position 9, following ".child[*"`},
+			},
+		},
+		{
+			name: "dot child with missing array subscript",
+			path: "$.child[]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeError, val: "subscript missing from [] before position 9"},
+			},
+		},
+		{
+			name: "dot child with embedded space",
+			path: "$.child more",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeError, val: `invalid character " " at position 7, following ".child"`},
 			},
 		},
 		{
@@ -121,7 +148,7 @@ func TestLexer(t *testing.T) {
 			path: "$['']",
 			expected: []lexeme{
 				{typ: lexemeRoot, val: "$"},
-				{typ: lexemeError, val: "child name missing from ['']"},
+				{typ: lexemeError, val: "child name missing from [''] before position 5"},
 			},
 		},
 		{
@@ -132,6 +159,61 @@ func TestLexer(t *testing.T) {
 				{typ: lexemeBracketChild, val: "['child1']"},
 				{typ: lexemeBracketChild, val: "['child2']"},
 				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "bracket child with array subscript",
+			path: "$['child'][*]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketChild, val: "['child']"},
+				{typ: lexemeArraySubscript, val: "[*]"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "bracket child with malformed array subscript",
+			path: "$['child'][1:2:3:4]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketChild, val: "['child']"},
+				{typ: lexemeError, val: "invalid array index, too many colons: [1:2:3:4] before position 19"},
+			},
+		},
+		{
+			name: "bracket child with non-integer array subscript",
+			path: "$['child'][1:2:a]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketChild, val: "['child']"},
+				{typ: lexemeError, val: "invalid array index containing non-integer value: [1:2:a] before position 17"},
+			},
+		},
+		{
+			name: "bracket child with unclosed array subscript",
+			path: "$['child'][*",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketChild, val: "['child']"},
+				{typ: lexemeError, val: `unmatched [ at position 12, following "['child'][*"`},
+			},
+		},
+		{
+			name: "bracket child with missing array subscript",
+			path: "$['child'][]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketChild, val: "['child']"},
+				{typ: lexemeError, val: "subscript missing from [] before position 12"},
+			},
+		},
+		{
+			name: "bracket child followed by space",
+			path: "$['child'] ",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketChild, val: "['child']"},
+				{typ: lexemeError, val: `invalid character " " at position 10, following "['child']"`},
 			},
 		},
 		{
@@ -159,7 +241,7 @@ func TestLexer(t *testing.T) {
 			expected: []lexeme{
 				{typ: lexemeRoot, val: "$"},
 				{typ: lexemeBracketChild, val: "['child']"},
-				{typ: lexemeError, val: "invalid array index, too many colons: [1:2:3:4]"},
+				{typ: lexemeError, val: "invalid array index, too many colons: [1:2:3:4] before position 19"},
 			},
 		},
 		{
@@ -168,7 +250,7 @@ func TestLexer(t *testing.T) {
 			expected: []lexeme{
 				{typ: lexemeRoot, val: "$"},
 				{typ: lexemeBracketChild, val: "['child']"},
-				{typ: lexemeError, val: "invalid array index containing non-integer value: [1:2:a]"},
+				{typ: lexemeError, val: "invalid array index containing non-integer value: [1:2:a] before position 17"},
 			},
 		},
 		{
@@ -255,7 +337,7 @@ func TestLexer(t *testing.T) {
 			path: "$..",
 			expected: []lexeme{
 				{typ: lexemeRoot, val: "$"},
-				{typ: lexemeError, val: "child name missing after .."},
+				{typ: lexemeError, val: `child name missing at position 3, following "$.."`},
 			},
 		},
 		{
@@ -347,6 +429,24 @@ func TestLexer(t *testing.T) {
 			},
 		},
 		{
+			name: "missing filter ",
+			path: "$[?()]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeFilterBegin, val: "[?("},
+				{typ: lexemeError, val: `missing filter at position 4, following "[?("`},
+			},
+		},
+		{
+			name: "unclosed filter",
+			path: "$[?(",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeFilterBegin, val: "[?("},
+				{typ: lexemeError, val: `invalid filter syntax: missing )] at position 4, following "[?("`},
+			},
+		},
+		{
 			name: "simple negative filter",
 			path: "$[?(!@.child)]",
 			expected: []lexeme{
@@ -418,7 +518,7 @@ func TestLexer(t *testing.T) {
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".child"},
 				{typ: lexemeFilterEquality, val: "=="},
-				{typ: lexemeError, val: `invalid integer literal "-": invalid syntax`},
+				{typ: lexemeError, val: `invalid integer literal "-": invalid syntax before position 14`},
 			},
 		},
 		{
@@ -430,7 +530,7 @@ func TestLexer(t *testing.T) {
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".child"},
 				{typ: lexemeFilterEquality, val: "=="},
-				{typ: lexemeError, val: `invalid integer literal "9223372036854775808": value out of range`},
+				{typ: lexemeError, val: `invalid integer literal "9223372036854775808": value out of range before position 32`},
 			},
 		},
 		{
@@ -442,7 +542,7 @@ func TestLexer(t *testing.T) {
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".child"},
 				{typ: lexemeFilterEquality, val: "=="},
-				{typ: lexemeError, val: `invalid float literal "1.2.3": invalid syntax`},
+				{typ: lexemeError, val: `invalid float literal "1.2.3": invalid syntax before position 18`},
 			},
 		},
 		{
@@ -491,7 +591,7 @@ func TestLexer(t *testing.T) {
 			expected: []lexeme{
 				{typ: lexemeRoot, val: "$"},
 				{typ: lexemeFilterBegin, val: "[?("},
-				{typ: lexemeError, val: "missing first operand for binary operator =="},
+				{typ: lexemeError, val: `missing first operand for binary operator == at position 4, following "[?("`},
 			},
 		},
 		{
@@ -501,7 +601,7 @@ func TestLexer(t *testing.T) {
 				{typ: lexemeRoot, val: "$"},
 				{typ: lexemeFilterBegin, val: "[?("},
 				{typ: lexemeFilterOpenBracket, val: "("},
-				{typ: lexemeError, val: "missing first operand for binary operator =="},
+				{typ: lexemeError, val: `missing first operand for binary operator == at position 5, following "("`},
 			},
 		},
 		{
@@ -513,7 +613,7 @@ func TestLexer(t *testing.T) {
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".child"},
 				{typ: lexemeFilterEquality, val: "=="},
-				{typ: lexemeError, val: "missing filter term"},
+				{typ: lexemeError, val: `missing filter term at position 13, following "=="`},
 			},
 		},
 		{
@@ -615,7 +715,7 @@ func TestLexer(t *testing.T) {
 			expected: []lexeme{
 				{typ: lexemeRoot, val: "$"},
 				{typ: lexemeFilterBegin, val: "[?("},
-				{typ: lexemeError, val: "missing first operand for binary operator !="},
+				{typ: lexemeError, val: `missing first operand for binary operator != at position 4, following "[?("`},
 			},
 		},
 		{
@@ -627,7 +727,7 @@ func TestLexer(t *testing.T) {
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".child"},
 				{typ: lexemeFilterInequality, val: "!="},
-				{typ: lexemeError, val: "missing filter term"},
+				{typ: lexemeError, val: `missing filter term at position 13, following "!="`},
 			},
 		},
 		{
@@ -679,7 +779,7 @@ func TestLexer(t *testing.T) {
 			expected: []lexeme{
 				{typ: lexemeRoot, val: "$"},
 				{typ: lexemeFilterBegin, val: "[?("},
-				{typ: lexemeError, val: "missing first operand for binary operator >"},
+				{typ: lexemeError, val: `missing first operand for binary operator > at position 4, following "[?("`},
 			},
 		},
 		{
@@ -691,7 +791,7 @@ func TestLexer(t *testing.T) {
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".child"},
 				{typ: lexemeFilterGreaterThan, val: ">"},
-				{typ: lexemeError, val: "missing filter term"},
+				{typ: lexemeError, val: `missing filter term at position 12, following ">"`},
 			},
 		},
 		{
@@ -750,7 +850,7 @@ func TestLexer(t *testing.T) {
 			expected: []lexeme{
 				{typ: lexemeRoot, val: "$"},
 				{typ: lexemeFilterBegin, val: "[?("},
-				{typ: lexemeError, val: "missing first operand for binary operator >="},
+				{typ: lexemeError, val: `missing first operand for binary operator >= at position 4, following "[?("`},
 			},
 		},
 		{
@@ -762,7 +862,7 @@ func TestLexer(t *testing.T) {
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".child"},
 				{typ: lexemeFilterGreaterThanOrEqual, val: ">="},
-				{typ: lexemeError, val: "missing filter term"},
+				{typ: lexemeError, val: `missing filter term at position 13, following ">="`},
 			},
 		},
 		{
@@ -821,7 +921,7 @@ func TestLexer(t *testing.T) {
 			expected: []lexeme{
 				{typ: lexemeRoot, val: "$"},
 				{typ: lexemeFilterBegin, val: "[?("},
-				{typ: lexemeError, val: "missing first operand for binary operator <"},
+				{typ: lexemeError, val: `missing first operand for binary operator < at position 4, following "[?("`},
 			},
 		},
 		{
@@ -833,7 +933,7 @@ func TestLexer(t *testing.T) {
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".child"},
 				{typ: lexemeFilterLessThan, val: "<"},
-				{typ: lexemeError, val: "missing filter term"},
+				{typ: lexemeError, val: `missing filter term at position 12, following "<"`},
 			},
 		},
 		{
@@ -892,7 +992,7 @@ func TestLexer(t *testing.T) {
 			expected: []lexeme{
 				{typ: lexemeRoot, val: "$"},
 				{typ: lexemeFilterBegin, val: "[?("},
-				{typ: lexemeError, val: "missing first operand for binary operator <="},
+				{typ: lexemeError, val: `missing first operand for binary operator <= at position 4, following "[?("`},
 			},
 		},
 		{
@@ -904,7 +1004,7 @@ func TestLexer(t *testing.T) {
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".child"},
 				{typ: lexemeFilterLessThanOrEqual, val: "<="},
-				{typ: lexemeError, val: "missing filter term"},
+				{typ: lexemeError, val: `missing filter term at position 13, following "<="`},
 			},
 		},
 		{
@@ -964,12 +1064,28 @@ func TestLexer(t *testing.T) {
 			},
 		},
 		{
+			name: "filter conjunction with bracket children",
+			path: "$[?(@['child'][*]&&@['other'])]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeFilterBegin, val: "[?("},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeBracketChild, val: "['child']"},
+				{typ: lexemeArraySubscript, val: "[*]"},
+				{typ: lexemeFilterAnd, val: "&&"},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeBracketChild, val: "['other']"},
+				{typ: lexemeFilterEnd, val: ")]"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
 			name: "filter invalid leading conjunction",
 			path: "$[?(&&",
 			expected: []lexeme{
 				{typ: lexemeRoot, val: "$"},
 				{typ: lexemeFilterBegin, val: "[?("},
-				{typ: lexemeError, val: "missing first operand for binary operator &&"},
+				{typ: lexemeError, val: `missing first operand for binary operator && at position 4, following "[?("`},
 			},
 		},
 		{
@@ -1008,7 +1124,7 @@ func TestLexer(t *testing.T) {
 			expected: []lexeme{
 				{typ: lexemeRoot, val: "$"},
 				{typ: lexemeFilterBegin, val: "[?("},
-				{typ: lexemeError, val: "missing first operand for binary operator ||"},
+				{typ: lexemeError, val: `missing first operand for binary operator || at position 4, following "[?("`},
 			},
 		},
 		{
@@ -1214,7 +1330,7 @@ func TestLexer(t *testing.T) {
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".child"},
 				{typ: lexemeFilterMatchesRegularExpression, val: "=~"},
-				{typ: lexemeError, val: "invalid regular expression position 13, following \"=~\": error parsing regexp: missing closing ): `(.*`"},
+				{typ: lexemeError, val: "invalid regular expression at position 13, following \"=~\": error parsing regexp: missing closing ): `(.*`"},
 			},
 		},
 	}

@@ -201,12 +201,12 @@ feather duster:
 		{
 			name:            "dot child with no name",
 			path:            "$.",
-			expectedPathErr: "child name missing after .",
+			expectedPathErr: `child name missing at position 2, following "$."`,
 		},
 		{
 			name:            "dot child with trailing dot",
 			path:            "$.store.",
-			expectedPathErr: "child name missing after .",
+			expectedPathErr: `child name missing at position 8, following ".store."`,
 		},
 		{
 			name: "dot child of dot child",
@@ -243,7 +243,7 @@ feather duster:
 		{
 			name:            "dot child with embedded space",
 			path:            "$.store.feather duster.price",
-			expectedPathErr: `invalid character " " at position 15 in subpath, following ".feather"`,
+			expectedPathErr: `invalid character " " at position 15, following ".feather"`,
 		},
 		{
 			name: "bracket child",
@@ -278,7 +278,7 @@ feather duster:
 		{
 			name:            "bracket child with no name",
 			path:            "$['']",
-			expectedPathErr: "child name missing from ['']",
+			expectedPathErr: "child name missing from [''] before position 5",
 		},
 		{
 			name: "bracket child of bracket child",
@@ -393,9 +393,9 @@ feather duster:
 			expectedPathErr: "",
 		},
 		{
-			name:            "bracket child unmatched",
+			name:            "unclosed bracket child",
 			path:            "$['store",
-			expectedPathErr: "unmatched ['",
+			expectedPathErr: `unmatched [' at position 8, following "$['store"`,
 		},
 		{
 			name: "recursive descent",
@@ -474,7 +474,7 @@ feather duster:
 		{
 			name:            "recursive descent with missing name",
 			path:            "$..",
-			expectedPathErr: "child name missing after ..",
+			expectedPathErr: `child name missing at position 3, following "$.."`,
 		},
 		{
 			name: "dot wildcarded children",
@@ -731,6 +731,17 @@ price: 22.99
 		{
 			name: "filter ==",
 			path: "$.store.book[?(@.category == 'reference')]",
+			expectedStrings: []string{
+				`category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
+`},
+			expectedPathErr: "",
+		},
+		{
+			name: "filter == with bracket child",
+			path: "$['store.book'][?(@.category == 'reference')]",
 			expectedStrings: []string{
 				`category: reference
 author: Nigel Rees

@@ -165,6 +165,36 @@ func TestNewFilterNode(t *testing.T) {
 			},
 		},
 		{
+			name: "existence || existence filter with bracket children",
+			lexemes: []lexeme{
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeBracketChild, val: "['a']"},
+				{typ: lexemeFilterOr, val: "||"},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeBracketChild, val: "['b']"},
+			},
+			expected: &filterNode{
+				lexeme:  lexeme{typ: lexemeFilterOr, val: "||"},
+				subpath: []lexeme{},
+				children: []*filterNode{
+					{
+						lexeme: lexeme{typ: lexemeFilterAt, val: "@"},
+						subpath: []lexeme{
+							{typ: lexemeBracketChild, val: "['a']"},
+						},
+						children: []*filterNode{},
+					},
+					{
+						lexeme: lexeme{typ: lexemeFilterAt, val: "@"},
+						subpath: []lexeme{
+							{typ: lexemeBracketChild, val: "['b']"},
+						},
+						children: []*filterNode{},
+					},
+				},
+			},
+		},
+		{
 			name: "comparison || existence filter",
 			lexemes: []lexeme{
 				{typ: lexemeFilterAt, val: "@"},
