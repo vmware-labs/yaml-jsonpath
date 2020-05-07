@@ -2,4 +2,4 @@
 #
 # run golangci-lint
 
-golangci-lint -E bodyclose,misspell,dupl,gofmt,golint,unconvert,goimports,depguard,gocritic,interfacer run
+golangci-lint -E bodyclose,misspell,gofmt,golint,unconvert,goimports,depguard,gocritic,interfacer run

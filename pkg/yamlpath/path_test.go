@@ -42,6 +42,13 @@ store:
     price: 19.95
   feather duster:
     price: 9.95
+x:
+  - y:
+    - z: 1
+      w: 2
+  - y:
+    - z: 3
+      w: 4
 `
 	var n yaml.Node
 
@@ -53,6 +60,7 @@ store:
 		path            string
 		expectedStrings []string
 		expectedPathErr string
+		focus           bool // if true, run only tests with focus set to true
 	}{
 		{
 			name: "identity",
@@ -82,6 +90,13 @@ store:
     price: 19.95
   feather duster:
     price: 9.95
+x:
+- y:
+  - z: 1
+    w: 2
+- y:
+  - z: 3
+    w: 4
 `},
 			expectedPathErr: "",
 		},
@@ -113,6 +128,13 @@ store:
     price: 19.95
   feather duster:
     price: 9.95
+x:
+- y:
+  - z: 1
+    w: 2
+- y:
+  - z: 3
+    w: 4
 `},
 			expectedPathErr: "",
 		},
@@ -179,12 +201,12 @@ feather duster:
 		{
 			name:            "dot child with no name",
 			path:            "$.",
-			expectedPathErr: "child name missing after .",
+			expectedPathErr: `child name missing at position 2, following "$."`,
 		},
 		{
 			name:            "dot child with trailing dot",
 			path:            "$.store.",
-			expectedPathErr: "child name missing after .",
+			expectedPathErr: `child name missing at position 8, following ".store."`,
 		},
 		{
 			name: "dot child of dot child",
@@ -219,12 +241,9 @@ feather duster:
 			expectedPathErr: "",
 		},
 		{
-			name: "dot child with embedded space",
-			path: "$.store.feather duster.price",
-			expectedStrings: []string{
-				"9.95\n",
-			},
-			expectedPathErr: "",
+			name:            "dot child with embedded space",
+			path:            "$.store.feather duster.price",
+			expectedPathErr: `invalid character ' ' at position 15, following ".feather"`,
 		},
 		{
 			name: "bracket child",
@@ -259,7 +278,7 @@ feather duster:
 		{
 			name:            "bracket child with no name",
 			path:            "$['']",
-			expectedPathErr: "child name missing from ['']",
+			expectedPathErr: "child name missing from [''] before position 5",
 		},
 		{
 			name: "bracket child of bracket child",
@@ -374,9 +393,9 @@ feather duster:
 			expectedPathErr: "",
 		},
 		{
-			name:            "bracket child unmatched",
+			name:            "unclosed bracket child",
 			path:            "$['store",
-			expectedPathErr: "unmatched ['",
+			expectedPathErr: `unmatched [' at position 8, following "$['store"`,
 		},
 		{
 			name: "recursive descent",
@@ -455,7 +474,7 @@ feather duster:
 		{
 			name:            "recursive descent with missing name",
 			path:            "$..",
-			expectedPathErr: "child name missing after ..",
+			expectedPathErr: `child name missing at position 3, following "$.."`,
 		},
 		{
 			name: "dot wildcarded children",
@@ -686,9 +705,112 @@ price: 22.99
 `},
 			expectedPathErr: "",
 		},
+		{
+			name: "filter >",
+			path: "$.store.book[?(@.price > 8.98)]",
+			expectedStrings: []string{
+				`category: fiction
+author: Evelyn Waugh
+title: Sword of Honour
+price: 12.99
+`,
+				`category: fiction
+author: Herman Melville
+title: Moby Dick
+isbn: 0-553-21311-3
+price: 8.99
+`,
+				`category: fiction
+author: J. R. R. Tolkien
+title: The Lord of the Rings
+isbn: 0-395-19395-8
+price: 22.99
+`},
+			expectedPathErr: "",
+		},
+		{
+			name: "filter ==",
+			path: "$.store.book[?(@.category == 'reference')]",
+			expectedStrings: []string{
+				`category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
+`},
+			expectedPathErr: "",
+		},
+		{
+			name: "filter == with bracket child",
+			path: "$['store.book'][?(@.category == 'reference')]",
+			expectedStrings: []string{
+				`category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
+`},
+			expectedPathErr: "",
+		},
+		{
+			name: "filter !=",
+			path: "$.store.book[?(@.category != 'fiction')]",
+			expectedStrings: []string{
+				`category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
+`},
+			expectedPathErr: "",
+		},
+		{
+			name: "filter involving root",
+			path: "$.store.book[?(@.price > $.store.bicycle.price)]",
+			expectedStrings: []string{`category: fiction
+author: J. R. R. Tolkien
+title: The Lord of the Rings
+isbn: 0-395-19395-8
+price: 22.99
+`},
+			expectedPathErr: "",
+		},
+		{
+			name: "nested filter (edge case)",
+			path: "$.x[?(@.y[?(@.z==1)].w==2)]",
+			expectedStrings: []string{
+				`y:
+- z: 1
+  w: 2
+`},
+			expectedPathErr: "",
+		},
+		{
+			name: "negated filter",
+			path: "$.store.book[?(!@.isbn)]",
+			expectedStrings: []string{
+				`category: reference
+author: Nigel Rees
+title: Sayings of the Century
+price: 8.95
+`,
+				`category: fiction
+author: Evelyn Waugh
+title: Sword of Honour
+price: 12.99
+`},
+			expectedPathErr: "",
+		}}
+
+	focussed := false
+	for _, tc := range cases {
+		if tc.focus {
+			focussed = true
+			break
+		}
 	}
 
 	for _, tc := range cases {
+		if focussed && !tc.focus {
+			continue
+		}
 		t.Run(tc.name, func(t *testing.T) {
 			p, err := yamlpath.NewPath(tc.path)
 			if tc.expectedPathErr == "" {
@@ -714,5 +836,9 @@ price: 22.99
 
 			require.Equal(t, tc.expectedStrings, actualStrings)
 		})
+	}
+
+	if focussed {
+		t.Fatalf("testcase(s) still focussed")
 	}
 }
