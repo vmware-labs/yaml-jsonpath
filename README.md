@@ -117,7 +117,7 @@ Filter expression are composed of three kinds of term:
 
 Filter expressions combine terms into basic filters of various sorts:
 * existence filters, which consist of just a `@` or `$` term, are true if and only if the given term produces a non-empty slice of descendants.
-* comparison filters (`==`, `!=`, `>`, `>=`, `<`, `<=`, `~=`) are true if and only if the same comparison is true of the values of each pair of items produced by the terms on each side of the comparison except that an empty slice always compares as false.
+* comparison filters (`==`, `!=`, `>`, `>=`, `<`, `<=`, `=~`) are true if and only if the same comparison is true of the values of each pair of items produced by the terms on each side of the comparison except that an empty slice always compares as false.
 
 Comparison filters are normally used to compare a term which produces a slice consisting of a single node and a literal. The value of the slice is compared to the literal and the result is the result of the comparison filter. For example, if `@.child` produces a slice with one node whose value is 3, then the filter `@.child<5` is true.
 
