@@ -108,7 +108,7 @@ A matcher of the form `[*]` selects all the nodes in each sequence node.
 
 ### Filters: `[?()]`
 
-This matches selects a subsequence of each sequence node in the input slice satsifying the filter expression.
+This matches selects a subsequence of each sequence node in the input slice satisfying the filter expression.
 
 Filter expression are composed of three kinds of term:
 * `@` terms which produce a slice of descendants of the current node being matched (which is a node in one of the input sequences). Any path expression may be appended after the `@` to determine which descendants to include.
