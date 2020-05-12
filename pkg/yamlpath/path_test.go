@@ -931,9 +931,11 @@ func TestFindOtherDocuments(t *testing.T) {
 			expectedStrings: []string{},
 		},
 		{
-			name:            "document with values matching keys",
-			input:           ``,
-			expectedStrings: []string{},
+			name: "document with values matching keys",
+			input: `c: a
+a: b`,
+			path:            ".a",
+			expectedStrings: []string{"b\n"},
 		},
 	}
 

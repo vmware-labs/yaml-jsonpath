@@ -173,7 +173,7 @@ func childThen(childName string, p *Path) *Path {
 			return empty(node, root)
 		}
 		for i, n := range node.Content {
-			if n.Value == childName { // FIXME: does this match on values too?
+			if i%2 == 0 && n.Value == childName {
 				return compose(yit.FromNode(node.Content[i+1]), p, root)
 			}
 		}
