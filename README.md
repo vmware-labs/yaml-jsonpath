@@ -126,6 +126,10 @@ is false (because there were no matches on that side).
 
 Comparison expressions are built from existence and/or comparison filters using familiar logical operators -- disjunction ("or", `||`), conjunction ("and", `&&`), and negation ("not", `!`) -- together with parenthesised expressions. 
 
+## Try it out
+
+See the [web application](./web/README.md) provided in this repository.
+
 ## References
 
 The following sources inspired the syntax and semantics of Go YAML Path:
