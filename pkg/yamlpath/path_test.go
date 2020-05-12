@@ -231,9 +231,7 @@ feather duster:
 		{
 			name: "undotted all children with implicit root",
 			path: "*",
-			expectedStrings: []string{`store
-`,
-				`book:
+			expectedStrings: []string{`book:
 - category: reference
   author: Nigel Rees
   title: Sayings of the Century
@@ -257,8 +255,6 @@ bicycle:
   price: 19.95
 feather duster:
   price: 9.95
-`,
-				`x
 `,
 				`- y:
   - z: 1
@@ -562,9 +558,7 @@ feather duster:
 			name: "dot wildcarded children",
 			path: "$.store.bicycle.*",
 			expectedStrings: []string{
-				"color\n",
 				"red\n",
-				"price\n",
 				"19.95\n",
 			},
 			expectedPathErr: "",
@@ -573,9 +567,7 @@ feather duster:
 			name: "bracketed wildcarded children",
 			path: "$['store.bicycle.*']",
 			expectedStrings: []string{
-				"color\n",
 				"red\n",
-				"price\n",
 				"19.95\n",
 			},
 			expectedPathErr: "",
@@ -925,7 +917,7 @@ price: 12.99
 	}
 }
 
-func TestFindBadDocument(t *testing.T) {
+func TestFindOtherDocuments(t *testing.T) {
 	cases := []struct {
 		name            string
 		input           string
@@ -936,6 +928,11 @@ func TestFindBadDocument(t *testing.T) {
 	}{
 		{
 			name:            "empty document",
+			expectedStrings: []string{},
+		},
+		{
+			name:            "document with values matching keys",
+			input:           ``,
 			expectedStrings: []string{},
 		},
 	}

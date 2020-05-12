@@ -173,7 +173,7 @@ func childThen(childName string, p *Path) *Path {
 			return empty(node, root)
 		}
 		for i, n := range node.Content {
-			if n.Value == childName {
+			if n.Value == childName { // FIXME: does this match on values too?
 				return compose(yit.FromNode(node.Content[i+1]), p, root)
 			}
 		}
@@ -187,7 +187,10 @@ func allChildrenThen(p *Path) *Path {
 			return empty(node, root)
 		}
 		its := []yit.Iterator{}
-		for _, n := range node.Content {
+		for i, n := range node.Content {
+			if i%2 == 0 {
+				continue // skip child names
+			}
 			its = append(its, compose(yit.FromNode(n), p, root))
 		}
 		return yit.FromIterators(its...)
