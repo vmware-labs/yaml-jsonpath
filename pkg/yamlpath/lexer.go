@@ -673,7 +673,7 @@ func lexNumericLiteral(l *lexer, nextState stateFn) (stateFn, bool) {
 			// validate float
 			if _, err := strconv.ParseFloat(l.value(), 64); err != nil {
 				err := err.(*strconv.NumError)
-				return l.rawErrorf("invalid float literal %q: %s before position %d", err.Num, err.Unwrap(), l.pos), true
+				return l.rawErrorf("invalid float literal %q: %s before position %d", err.Num, err, l.pos), true
 			}
 			l.emit(lexemeFilterFloatLiteral)
 			return lexFilterExpr, true
@@ -681,7 +681,7 @@ func lexNumericLiteral(l *lexer, nextState stateFn) (stateFn, bool) {
 		// validate integer
 		if _, err := strconv.Atoi(l.value()); err != nil {
 			err := err.(*strconv.NumError)
-			return l.rawErrorf("invalid integer literal %q: %s before position %d", err.Num, err.Unwrap(), l.pos), true
+			return l.rawErrorf("invalid integer literal %q: %s before position %d", err.Num, err, l.pos), true
 		}
 		l.emit(lexemeFilterIntegerLiteral)
 		return lexFilterExpr, true

@@ -1,6 +1,6 @@
 module github.com/glyn/go-yamlpath
 
-go 1.14
+go 1.13
 
 require (
 	github.com/dprotaso/go-yit v0.0.0-20191028211022-135eb7262960

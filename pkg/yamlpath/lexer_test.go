@@ -574,7 +574,7 @@ func TestLexer(t *testing.T) {
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".child"},
 				{typ: lexemeFilterEquality, val: "=="},
-				{typ: lexemeError, val: `invalid integer literal "-": invalid syntax before position 14`},
+				{typ: lexemeError, val: `invalid integer literal "-": strconv.Atoi: parsing "-": invalid syntax before position 14`},
 			},
 		},
 		{
@@ -586,7 +586,7 @@ func TestLexer(t *testing.T) {
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".child"},
 				{typ: lexemeFilterEquality, val: "=="},
-				{typ: lexemeError, val: `invalid integer literal "9223372036854775808": value out of range before position 32`},
+				{typ: lexemeError, val: `invalid integer literal "9223372036854775808": strconv.Atoi: parsing "9223372036854775808": value out of range before position 32`},
 			},
 		},
 		{
@@ -598,7 +598,7 @@ func TestLexer(t *testing.T) {
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".child"},
 				{typ: lexemeFilterEquality, val: "=="},
-				{typ: lexemeError, val: `invalid float literal "1.2.3": invalid syntax before position 18`},
+				{typ: lexemeError, val: `invalid float literal "1.2.3": strconv.ParseFloat: parsing "1.2.3": invalid syntax before position 18`},
 			},
 		},
 		{

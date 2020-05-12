@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/glyn/go-yamlpath/pkg/yamlpath"
@@ -136,8 +137,15 @@ textarea, input {
 		}
 	})
 
-	if e := http.ListenAndServe(":8080", nil); e != nil {
-		log.Fatal(e)
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+		log.Printf("Defaulting to port %s", port)
+	}
+
+	log.Printf("Listening on port %s", port)
+	if err := http.ListenAndServe(":"+port, nil); err != nil {
+		log.Fatal(err)
 	}
 }
 
