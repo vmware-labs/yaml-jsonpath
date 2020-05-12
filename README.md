@@ -41,13 +41,13 @@ Valid paths are strings conforming to the following BNF syntax.
                 <basic filter> "&&" <filter and>         ; conjunction (binds more tightly than ||)
 <basic filter> ::= <filter subpath> |                    ; subpath exists
                    "!" <basic filter> |                  ; negation
-                   <filter term> == <filter term> |      ; equality
-                   <filter term> != <filter term> |      ; inequality
-                   <filter term> > <filter term> |       ; numeric greater than
-                   <filter term> >= <filter term> |      ; numeric greater than or equal to
-                   <filter term> < <filter term> |       ; numeric less than
-                   <filter term> <= <filter term> |      ; numeric less than or equal to
-                   <filter subpath> =~ <regular expr> |  ; subpath value matches regular expression
+                   <filter term> "==" <filter term> |    ; equality
+                   <filter term> "!=" <filter term> |    ; inequality
+                   <filter term> ">" <filter term> |     ; numeric greater than
+                   <filter term> ">=" <filter term> |    ; numeric greater than or equal to
+                   <filter term> "<" <filter term> |     ; numeric less than
+                   <filter term> "<=" <filter term> |    ; numeric less than or equal to
+                   <filter subpath> "=~" <regular expr> |; subpath value matches regular expression
                    "(" <filter expr> ")"                 ; bracketing
 <filter term> ::= "@" <subpath> |                        ; item relative to element being processed
                   "$" <subpath>                          ; item relative to root node of a document
