@@ -127,6 +127,9 @@ func newPath(l *lexer) (*Path, error) {
 }
 
 func identity(node, root *yaml.Node) yit.Iterator {
+	if node.Kind == 0 {
+		return yit.FromNodes()
+	}
 	return yit.FromNode(node)
 }
 

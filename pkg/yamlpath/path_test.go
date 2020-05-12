@@ -842,3 +842,66 @@ price: 12.99
 		t.Fatalf("testcase(s) still focussed")
 	}
 }
+
+func TestFindBadDocument(t *testing.T) {
+	cases := []struct {
+		name            string
+		input           string
+		path            string
+		expectedStrings []string
+		expectedPathErr string
+		focus           bool // if true, run only tests with focus set to true
+	}{
+		{
+			name:            "empty document",
+			expectedStrings: []string{},
+		},
+	}
+
+	focussed := false
+	for _, tc := range cases {
+		if tc.focus {
+			focussed = true
+			break
+		}
+	}
+
+	for _, tc := range cases {
+		if focussed && !tc.focus {
+			continue
+		}
+		t.Run(tc.name, func(t *testing.T) {
+			var n yaml.Node
+			err := yaml.Unmarshal([]byte(tc.input), &n)
+			require.NoError(t, err)
+
+			p, err := yamlpath.NewPath(tc.path)
+			if tc.expectedPathErr == "" {
+				require.NoError(t, err)
+			} else {
+				require.EqualError(t, err, tc.expectedPathErr)
+				return
+			}
+
+			actual := p.Find(&n)
+
+			actualStrings := []string{}
+			for _, a := range actual {
+				var buf bytes.Buffer
+				e := yaml.NewEncoder(&buf)
+				e.SetIndent(2)
+
+				err = e.Encode(a)
+				require.NoError(t, err)
+				e.Close()
+				actualStrings = append(actualStrings, buf.String())
+			}
+
+			require.Equal(t, tc.expectedStrings, actualStrings)
+		})
+	}
+
+	if focussed {
+		t.Fatalf("testcase(s) still focussed")
+	}
+}
