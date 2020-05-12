@@ -24,6 +24,7 @@ const (
 	lexemeIdentity
 	lexemeRoot
 	lexemeDotChild
+	lexemeUndottedChild
 	lexemeBracketChild
 	lexemeRecursiveDescent
 	lexemeArraySubscript
@@ -432,6 +433,23 @@ func lexSubPath(l *lexer) stateFn {
 		l.emit(lexemeFilterBegin)
 		l.push(lexFilterEnd)
 		return lexFilterExprInitial
+
+	case l.lastEmittedLexemeType == lexemeEOF:
+		childName := false
+		for {
+			le := l.next()
+			if le == '.' || le == '[' || le == ')' || le == ' ' || le == '&' || le == '|' || le == '=' || le == '!' || le == '>' || le == '<' || le == eof {
+				l.backup()
+				break
+			}
+			childName = true
+		}
+		if !childName {
+			return l.errorf("child name missing")
+		}
+		l.emit(lexemeUndottedChild)
+
+		return lexOptionalArrayIndex
 
 	default:
 		return l.errorf("invalid path syntax")

@@ -79,6 +79,13 @@ func newPath(l *lexer) (*Path, error) {
 		childName := strings.TrimPrefix(lx.val, ".")
 		return childThen(childName, subPath), nil
 
+	case lexemeUndottedChild:
+		subPath, err := newPath(l)
+		if err != nil {
+			return new(empty), err
+		}
+		return childThen(lx.val, subPath), nil
+
 	case lexemeBracketChild:
 		subPath, err := newPath(l)
 		if err != nil {
