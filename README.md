@@ -10,7 +10,8 @@
 Valid paths are strings conforming to the following BNF syntax.
 
 ```
-<path> ::= <identity> | <root> <subpath> | <subpath>
+<path> ::= <identity> | <root> <subpath> | <subpath> |
+           <undotted child> <subpath>                    ; an undotted child is allowed at the start of a path
 <identity> := ""                                         ; the current node
 <root> ::= "$"                                           ; the root node of a document
 <subpath> ::= <identity> | <child> <subpath> |
@@ -20,6 +21,10 @@ Valid paths are strings conforming to the following BNF syntax.
 <child> ::= <dot child> | <bracket child>
 <dot child> ::= "." <child name> | ".*"                  ; named child or all children
 <bracket child> ::= "['" <child name> "']"               ; named child
+<undotted child> ::= <child name> |                      ; named child
+                     <child name> <array access> |       ; array access of named child
+                    "*"                                  ; all children
+                    "*" <array access>                   ; array access of all children
 
 <recursive descent> ::= ".." <child name>                ; all the descendants named <child name>
 

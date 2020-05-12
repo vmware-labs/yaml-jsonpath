@@ -79,6 +79,13 @@ func newPath(l *lexer) (*Path, error) {
 		childName := strings.TrimPrefix(lx.val, ".")
 		return childThen(childName, subPath), nil
 
+	case lexemeUndottedChild:
+		subPath, err := newPath(l)
+		if err != nil {
+			return new(empty), err
+		}
+		return childThen(lx.val, subPath), nil
+
 	case lexemeBracketChild:
 		subPath, err := newPath(l)
 		if err != nil {
@@ -166,7 +173,7 @@ func childThen(childName string, p *Path) *Path {
 			return empty(node, root)
 		}
 		for i, n := range node.Content {
-			if n.Value == childName {
+			if i%2 == 0 && n.Value == childName {
 				return compose(yit.FromNode(node.Content[i+1]), p, root)
 			}
 		}
@@ -180,7 +187,10 @@ func allChildrenThen(p *Path) *Path {
 			return empty(node, root)
 		}
 		its := []yit.Iterator{}
-		for _, n := range node.Content {
+		for i, n := range node.Content {
+			if i%2 == 0 {
+				continue // skip child names
+			}
 			its = append(its, compose(yit.FromNode(n), p, root))
 		}
 		return yit.FromIterators(its...)

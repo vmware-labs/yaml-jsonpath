@@ -199,6 +199,73 @@ feather duster:
 			expectedPathErr: "",
 		},
 		{
+			name: "undotted child with implicit root",
+			path: "store",
+			expectedStrings: []string{`book:
+- category: reference
+  author: Nigel Rees
+  title: Sayings of the Century
+  price: 8.95
+- category: fiction
+  author: Evelyn Waugh
+  title: Sword of Honour
+  price: 12.99
+- category: fiction
+  author: Herman Melville
+  title: Moby Dick
+  isbn: 0-553-21311-3
+  price: 8.99
+- category: fiction
+  author: J. R. R. Tolkien
+  title: The Lord of the Rings
+  isbn: 0-395-19395-8
+  price: 22.99
+bicycle:
+  color: red
+  price: 19.95
+feather duster:
+  price: 9.95
+`},
+			expectedPathErr: "",
+		},
+		{
+			name: "undotted all children with implicit root",
+			path: "*",
+			expectedStrings: []string{`book:
+- category: reference
+  author: Nigel Rees
+  title: Sayings of the Century
+  price: 8.95
+- category: fiction
+  author: Evelyn Waugh
+  title: Sword of Honour
+  price: 12.99
+- category: fiction
+  author: Herman Melville
+  title: Moby Dick
+  isbn: 0-553-21311-3
+  price: 8.99
+- category: fiction
+  author: J. R. R. Tolkien
+  title: The Lord of the Rings
+  isbn: 0-395-19395-8
+  price: 22.99
+bicycle:
+  color: red
+  price: 19.95
+feather duster:
+  price: 9.95
+`,
+				`- y:
+  - z: 1
+    w: 2
+- y:
+  - z: 3
+    w: 4
+`},
+			expectedPathErr: "",
+		},
+		{
 			name:            "dot child with no name",
 			path:            "$.",
 			expectedPathErr: `child name missing at position 2, following "$."`,
@@ -422,6 +489,17 @@ feather duster:
 			expectedPathErr: "",
 		},
 		{
+			name: "recursive descent of child starting with undotted implicit root",
+			path: "store.book..price",
+			expectedStrings: []string{
+				"8.95\n",
+				"12.99\n",
+				"8.99\n",
+				"22.99\n",
+			},
+			expectedPathErr: "",
+		},
+		{
 			name: "recursive descent of bracket child",
 			path: "$['store']['book']..price",
 			expectedStrings: []string{
@@ -480,9 +558,7 @@ feather duster:
 			name: "dot wildcarded children",
 			path: "$.store.bicycle.*",
 			expectedStrings: []string{
-				"color\n",
 				"red\n",
-				"price\n",
 				"19.95\n",
 			},
 			expectedPathErr: "",
@@ -491,9 +567,7 @@ feather duster:
 			name: "bracketed wildcarded children",
 			path: "$['store.bicycle.*']",
 			expectedStrings: []string{
-				"color\n",
 				"red\n",
-				"price\n",
 				"19.95\n",
 			},
 			expectedPathErr: "",
@@ -843,7 +917,7 @@ price: 12.99
 	}
 }
 
-func TestFindBadDocument(t *testing.T) {
+func TestFindOtherDocuments(t *testing.T) {
 	cases := []struct {
 		name            string
 		input           string
@@ -855,6 +929,13 @@ func TestFindBadDocument(t *testing.T) {
 		{
 			name:            "empty document",
 			expectedStrings: []string{},
+		},
+		{
+			name: "document with values matching keys",
+			input: `c: a
+a: b`,
+			path:            ".a",
+			expectedStrings: []string{"b\n"},
 		},
 	}
 
