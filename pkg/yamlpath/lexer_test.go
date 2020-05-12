@@ -69,6 +69,14 @@ func TestLexer(t *testing.T) {
 			},
 		},
 		{
+			name: "dot child with missing dot",
+			path: "$a",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeError, val: `invalid path syntax at position 1, following "$"`},
+			},
+		},
+		{
 			name: "dot child with trailing dot",
 			path: "$.child.",
 			expected: []lexeme{

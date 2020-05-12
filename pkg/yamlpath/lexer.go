@@ -434,7 +434,7 @@ func lexSubPath(l *lexer) stateFn {
 		return lexFilterExprInitial
 
 	default:
-		return l.errorf("invalid path syntax at position %d, following %q", l.pos, l.context())
+		return l.errorf("invalid path syntax")
 	}
 }
 
