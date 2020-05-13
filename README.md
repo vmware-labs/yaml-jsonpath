@@ -12,7 +12,7 @@ Valid paths are strings conforming to the following BNF syntax.
 ```
 <path> ::= <identity> | <root> <subpath> | <subpath> |
            <undotted child> <subpath>                    ; an undotted child is allowed at the start of a path
-<identity> := ""                                         ; the current node
+<identity> ::= ""                                        ; the current node
 <root> ::= "$"                                           ; the root node of a document
 <subpath> ::= <identity> | <child> <subpath> |
               <child> <array access> <subpath> |
@@ -37,17 +37,17 @@ Valid paths are strings conforming to the following BNF syntax.
 <filter> ::= "?(" <filter expr> ")"
 <filter expr> ::= <filter and> |
                   <filter and> "||" <filter expr>        ; disjunction
-<filter and> := <basic filter> |
+<filter and> ::= <basic filter> |
                 <basic filter> "&&" <filter and>         ; conjunction (binds more tightly than ||)
 <basic filter> ::= <filter subpath> |                    ; subpath exists
                    "!" <basic filter> |                  ; negation
-                   <filter term> == <filter term> |      ; equality
-                   <filter term> != <filter term> |      ; inequality
-                   <filter term> > <filter term> |       ; numeric greater than
-                   <filter term> >= <filter term> |      ; numeric greater than or equal to
-                   <filter term> < <filter term> |       ; numeric less than
-                   <filter term> <= <filter term> |      ; numeric less than or equal to
-                   <filter subpath> =~ <regular expr> |  ; subpath value matches regular expression
+                   <filter term> "==" <filter term> |    ; equality
+                   <filter term> "!=" <filter term> |    ; inequality
+                   <filter term> ">" <filter term> |     ; numeric greater than
+                   <filter term> ">=" <filter term> |    ; numeric greater than or equal to
+                   <filter term> "<" <filter term> |     ; numeric less than
+                   <filter term> "<=" <filter term> |    ; numeric less than or equal to
+                   <filter subpath> "=~" <regular expr> |; subpath value matches regular expression
                    "(" <filter expr> ")"                 ; bracketing
 <filter term> ::= "@" <subpath> |                        ; item relative to element being processed
                   "$" <subpath>                          ; item relative to root node of a document
@@ -57,7 +57,7 @@ Valid paths are strings conforming to the following BNF syntax.
 <filter literal> ::= <integer> |                         ; positive or negative decimal integer
                      <floating point number> |           ; floating point number
                      "'" <string without '> "'"          ; string enclosed in single quotes
-<regular expr> := "/" <go regex> "/"                     ; Go regular expression with any "/" in the regex escaped as "\/"
+<regular expr> ::= "/" <go regex> "/"                    ; Go regular expression with any "/" in the regex escaped as "\/"
 ```
 
 The `NewPath` function parses a string path and returns a corresponding value of the `Path` type and
