@@ -20,8 +20,8 @@ type Path struct {
 }
 
 // Find applies the Path to a YAML node and returns the addresses of the subnodes which match the Path.
-func (p *Path) Find(node *yaml.Node) []*yaml.Node {
-	return p.find(node, node)
+func (p *Path) Find(node *yaml.Node) ([]*yaml.Node, error) {
+	return p.find(node, node), nil // currently, errors are not possible
 }
 
 func (p *Path) find(node, root *yaml.Node) []*yaml.Node {
