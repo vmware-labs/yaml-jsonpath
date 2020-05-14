@@ -48,7 +48,10 @@ spec:
 		log.Fatalf("cannot create path: %v", err)
 	}
 
-	q := p.Find(&n)
+	q, err := p.Find(&n)
+	if err != nil {
+		log.Fatalf("unexpected error: %v", err)
+	}
 
 	for _, i := range q {
 		i.Value = "example.com/user/" + i.Value

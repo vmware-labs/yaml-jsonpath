@@ -118,7 +118,10 @@ textarea, input {
 			return
 		}
 
-		results := path.Find(&n)
+		results, err := path.Find(&n)
+		if err != nil {
+			respondWithError(w, err)
+		}
 
 		out := []string{}
 		for _, a := range results {

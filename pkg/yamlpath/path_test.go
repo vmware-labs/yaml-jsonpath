@@ -894,7 +894,8 @@ price: 12.99
 				return
 			}
 
-			actual := p.Find(&n)
+			actual, err := p.Find(&n)
+			require.NoError(t, err)
 
 			actualStrings := []string{}
 			for _, a := range actual {
@@ -964,7 +965,8 @@ a: b`,
 				return
 			}
 
-			actual := p.Find(&n)
+			actual, err := p.Find(&n)
+			require.NoError(t, err)
 
 			actualStrings := []string{}
 			for _, a := range actual {

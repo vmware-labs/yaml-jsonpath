@@ -7,6 +7,7 @@
 package yamlpath
 
 import (
+	"fmt"
 	"regexp"
 
 	"gopkg.in/yaml.v3"
@@ -136,7 +137,10 @@ func pathFilterScanner(n *filterNode) filterScanner {
 	}
 }
 
-func values(nodes []*yaml.Node) []string {
+func values(nodes []*yaml.Node, err error) []string {
+	if err != nil {
+		panic(fmt.Errorf("unexpected error: %v", err)) // should never happen
+	}
 	v := []string{}
 	for _, n := range nodes {
 		v = append(v, n.Value)
