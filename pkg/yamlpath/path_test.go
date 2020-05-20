@@ -938,6 +938,13 @@ a: b`,
 			path:            ".a",
 			expectedStrings: []string{"b\n"},
 		},
+		{
+			name: "apostrophe child name",
+			input: `"'": a
+`,
+			path:            "['\\'']",
+			expectedStrings: []string{"a\n"},
+		},
 	}
 
 	focussed := false
