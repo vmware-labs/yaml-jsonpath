@@ -19,6 +19,7 @@ func TestSlicer(t *testing.T) {
 		length      int
 		expected    []int
 		expectedErr string
+		focus       bool // if true, run only tests with focus set to true
 	}{
 		{
 			name:        "index",
@@ -139,6 +140,13 @@ func TestSlicer(t *testing.T) {
 			expectedErr: "",
 		},
 		{
+			name:        "negative from",
+			index:       "-2:",
+			length:      10,
+			expected:    []int{8, 9},
+			expectedErr: "",
+		},
+		{
 			name:        "positive from, negative to",
 			index:       "1:-1",
 			length:      10,
@@ -164,9 +172,44 @@ func TestSlicer(t *testing.T) {
 			length:      10,
 			expectedErr: "non-integer array index",
 		},
+		{
+			name:     "empty range 0:0",
+			index:    "0:0",
+			length:   10,
+			expected: []int{},
+		},
+		{
+			name:     "empty range 2:1",
+			index:    "2:1",
+			length:   10,
+			expected: []int{},
+		},
+		{
+			name:     "union",
+			index:    "0,1",
+			length:   10,
+			expected: []int{0, 1},
+		},
+		{
+			name:     "union with whitespace",
+			index:    " 0 , 1 ",
+			length:   10,
+			expected: []int{0, 1},
+		},
+	}
+
+	focussed := false
+	for _, tc := range cases {
+		if tc.focus {
+			focussed = true
+			break
+		}
 	}
 
 	for _, tc := range cases {
+		if focussed && !tc.focus {
+			continue
+		}
 		actual, err := slice(tc.index, tc.length)
 		t.Run(tc.name, func(t *testing.T) {
 			if tc.expectedErr == "" {
@@ -177,5 +220,9 @@ func TestSlicer(t *testing.T) {
 			}
 			require.Equal(t, tc.expected, actual)
 		})
+	}
+
+	if focussed {
+		t.Fatalf("testcase(s) still focussed")
 	}
 }

@@ -343,9 +343,34 @@ feather duster:
 			expectedPathErr: "",
 		},
 		{
-			name:            "bracket child with no name",
-			path:            "$['']",
-			expectedPathErr: "child name missing from [''] before position 5",
+			name: "bracket child with double quotes",
+			path: `$["store"]`,
+			expectedStrings: []string{`book:
+- category: reference
+  author: Nigel Rees
+  title: Sayings of the Century
+  price: 8.95
+- category: fiction
+  author: Evelyn Waugh
+  title: Sword of Honour
+  price: 12.99
+- category: fiction
+  author: Herman Melville
+  title: Moby Dick
+  isbn: 0-553-21311-3
+  price: 8.99
+- category: fiction
+  author: J. R. R. Tolkien
+  title: The Lord of the Rings
+  isbn: 0-395-19395-8
+  price: 22.99
+bicycle:
+  color: red
+  price: 19.95
+feather duster:
+  price: 9.95
+`},
+			expectedPathErr: "",
 		},
 		{
 			name: "bracket child of bracket child",
@@ -372,35 +397,9 @@ feather duster:
 			expectedPathErr: "",
 		},
 		{
-			name: "bracket dotted child",
-			path: "$['store.book']",
-			expectedStrings: []string{`- category: reference
-  author: Nigel Rees
-  title: Sayings of the Century
-  price: 8.95
-- category: fiction
-  author: Evelyn Waugh
-  title: Sword of Honour
-  price: 12.99
-- category: fiction
-  author: Herman Melville
-  title: Moby Dick
-  isbn: 0-553-21311-3
-  price: 8.99
-- category: fiction
-  author: J. R. R. Tolkien
-  title: The Lord of the Rings
-  isbn: 0-395-19395-8
-  price: 22.99
-`},
-			expectedPathErr: "",
-		},
-		{
-			name: "bracket child with embedded wildcard",
-			path: "$['store.*.color']",
-			expectedStrings: []string{
-				"red\n",
-			},
+			name:            "bracket dotted child",
+			path:            "$['store.book']",
+			expectedStrings: []string{},
 			expectedPathErr: "",
 		},
 		{
@@ -514,10 +513,7 @@ feather duster:
 			name: "recursive descent with wildcard",
 			path: "$.store.bicycle..*",
 			expectedStrings: []string{
-				"color: red\nprice: 19.95\n",
-				"color\n",
 				"red\n",
-				"price\n",
 				"19.95\n",
 			},
 			expectedPathErr: "",
@@ -552,20 +548,11 @@ feather duster:
 		{
 			name:            "recursive descent with missing name",
 			path:            "$..",
-			expectedPathErr: `child name missing at position 3, following "$.."`,
+			expectedPathErr: `child name or array access or filter missing after recursive descent at position 3, following "$.."`,
 		},
 		{
 			name: "dot wildcarded children",
 			path: "$.store.bicycle.*",
-			expectedStrings: []string{
-				"red\n",
-				"19.95\n",
-			},
-			expectedPathErr: "",
-		},
-		{
-			name: "bracketed wildcarded children",
-			path: "$['store.bicycle.*']",
 			expectedStrings: []string{
 				"red\n",
 				"19.95\n",
@@ -780,6 +767,12 @@ price: 22.99
 			expectedPathErr: "",
 		},
 		{
+			name:            "array subscript out of bounds:",
+			path:            "$.store.book[99]",
+			expectedStrings: []string{},
+			expectedPathErr: "",
+		},
+		{
 			name: "filter >",
 			path: "$.store.book[?(@.price > 8.98)]",
 			expectedStrings: []string{
@@ -815,7 +808,7 @@ price: 8.95
 		},
 		{
 			name: "filter == with bracket child",
-			path: "$['store.book'][?(@.category == 'reference')]",
+			path: "$.store.book[?(@.category == 'reference')]",
 			expectedStrings: []string{
 				`category: reference
 author: Nigel Rees
@@ -939,11 +932,51 @@ a: b`,
 			expectedStrings: []string{"b\n"},
 		},
 		{
-			name: "apostrophe child name",
-			input: `"'": a
-`,
-			path:            "['\\'']",
-			expectedStrings: []string{"a\n"},
+			name: "document with top-level array",
+			input: `- c: a
+- a: b`,
+			path:            "$[0]",
+			expectedStrings: []string{"c: a\n"},
+		},
+		{
+			name: "document with top-level array, .*",
+			input: `- c: a
+- a: b`,
+			path:            "$.*",
+			expectedStrings: []string{"c: a\n", "a: b\n"},
+		},
+		{
+			name: "document with top-level array, filter with double-quoted string literal",
+			input: `- c: a
+- a: b`,
+			path:            `$[?(@.c=="a")]`,
+			expectedStrings: []string{"c: a\n"},
+		},
+		{
+			name: "union with keys",
+			input: `key: value
+another: entry`,
+			path:            `$['key','another']`,
+			expectedStrings: []string{"value\n", "entry\n"},
+		},
+		{
+			name: "bracket child with quoted union literal",
+			input: `",": value
+another: entry`,
+			path:            `$[',']`,
+			expectedStrings: []string{"value\n"},
+		},
+		{
+			name:            "array access after recursive descent",
+			input:           `{"k": [{"key": "some value"}, {"key": 42}], "kk": [[{"key": 100}, {"key": 200}, {"key": 300}], [{"key": 400}, {"key": 500}, {"key": 600}]], "key": [0, 1]}`,
+			path:            `$..[1].key`,
+			expectedStrings: []string{"42\n", "200\n", "500\n"},
+		},
+		{
+			name:            "filter after recursive descent",
+			input:           `{"k": [{"key": "some value"}, {"key": 42}], "kk": [[{"key": 100}, {"key": 200}, {"key": 300}], [{"key": 400}, {"key": 500}, {"key": 600}]], "key": [0, 1]}`,
+			path:            `$..[?(@.key>=500)]`,
+			expectedStrings: []string{"{\"key\": 500}\n", "{\"key\": 600}\n"},
 		},
 	}
 

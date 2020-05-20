@@ -62,14 +62,23 @@ func newPath(l *lexer) (*Path, error) {
 			return new(empty), err
 		}
 		childName := strings.TrimPrefix(lx.val, "..")
-		if childName == "*" { // includes all nodes, not just mapping nodes
+		switch childName {
+		case "*":
+			// includes all nodes, not just mapping nodes
+			return new(func(node, root *yaml.Node) yit.Iterator {
+				return compose(yit.FromNode(node).RecurseNodes(), allChildrenThen(subPath), root)
+			}), nil
+
+		case "":
 			return new(func(node, root *yaml.Node) yit.Iterator {
 				return compose(yit.FromNode(node).RecurseNodes(), subPath, root)
 			}), nil
+
+		default:
+			return new(func(node, root *yaml.Node) yit.Iterator {
+				return compose(yit.FromNode(node).RecurseNodes(), childThen(childName, subPath), root)
+			}), nil
 		}
-		return new(func(node, root *yaml.Node) yit.Iterator {
-			return compose(yit.FromNode(node).RecurseNodes(), childThen(childName, subPath), root)
-		}), nil
 
 	case lexemeDotChild:
 		subPath, err := newPath(l)
@@ -91,8 +100,10 @@ func newPath(l *lexer) (*Path, error) {
 		if err != nil {
 			return new(empty), err
 		}
-		childNames := strings.TrimSuffix(strings.TrimPrefix(lx.val, "['"), "']")
-		return childrenThen(childNames, subPath), nil
+		childNames := strings.TrimSpace(lx.val)
+		childNames = strings.TrimSuffix(strings.TrimPrefix(childNames, "["), "]")
+		childNames = strings.TrimSpace(childNames)
+		return bracketChildThen(childNames, subPath), nil
 
 	case lexemeArraySubscript:
 		subPath, err := newPath(l)
@@ -156,19 +167,12 @@ func new(f func(node, root *yaml.Node) yit.Iterator) *Path {
 	return &Path{f: f}
 }
 
-func childrenThen(childNames string, p *Path) *Path {
-	c := strings.SplitN(childNames, ".", 2) // TODO: support escaping of .
-	if len(c) == 2 {
-		return childThen(c[0], childrenThen(c[1], p))
-	}
-	return childThen(c[0], p)
-}
-
 func childThen(childName string, p *Path) *Path {
 	if childName == "*" {
 		return allChildrenThen(p)
 	}
-	childName = unescape(childName) // TODO: splitting child names has already happened too early
+	childName = unescape(childName)
+
 	return new(func(node, root *yaml.Node) yit.Iterator {
 		if node.Kind != yaml.MappingNode {
 			return empty(node, root)
@@ -182,28 +186,121 @@ func childThen(childName string, p *Path) *Path {
 	})
 }
 
-func unescape(raw string) string {
-	return strings.ReplaceAll(raw, "\\'", "'")
+func bracketChildNames(childNames string) []string {
+	s := strings.Split(childNames, ",")
+	// reconstitute child names with embedded commas
+	children := []string{}
+	accum := ""
+	for _, c := range s {
+		if balanced(c, '\'') && balanced(c, '"') {
+			if accum != "" {
+				accum += "," + c
+			} else {
+				children = append(children, c)
+				accum = ""
+			}
+		} else {
+			if accum == "" {
+				accum = c
+			} else {
+				accum += "," + c
+				children = append(children, accum)
+				accum = ""
+			}
+		}
+	}
+	if accum != "" {
+		children = append(children, accum)
+	}
+
+	unquotedChildren := []string{}
+	for _, c := range children {
+		c = strings.TrimSpace(c)
+		if strings.HasPrefix(c, "'") {
+			c = strings.TrimSuffix(strings.TrimPrefix(c, "'"), "'")
+		} else {
+			c = strings.TrimSuffix(strings.TrimPrefix(c, `"`), `"`)
+		}
+		c = unescape(c)
+		unquotedChildren = append(unquotedChildren, c)
+	}
+	return unquotedChildren
 }
 
-func allChildrenThen(p *Path) *Path {
+func balanced(c string, q byte) bool {
+	bal := true
+	for i := 0; i < len(c); i++ {
+		if c[i] == q {
+			if i > 0 && c[i-1] == '\\' {
+				continue
+			}
+			bal = !bal
+		}
+	}
+	return bal
+}
+
+func bracketChildThen(childNames string, p *Path) *Path {
+	unquotedChildren := bracketChildNames(childNames)
+
 	return new(func(node, root *yaml.Node) yit.Iterator {
 		if node.Kind != yaml.MappingNode {
 			return empty(node, root)
 		}
 		its := []yit.Iterator{}
-		for i, n := range node.Content {
-			if i%2 == 0 {
-				continue // skip child names
+		for _, childName := range unquotedChildren {
+			for i, n := range node.Content {
+				if i%2 == 0 && n.Value == childName {
+					its = append(its, yit.FromNode(node.Content[i+1]))
+				}
 			}
-			its = append(its, compose(yit.FromNode(n), p, root))
 		}
-		return yit.FromIterators(its...)
+		return compose(yit.FromIterators(its...), p, root)
+	})
+}
+
+func unescape(raw string) string {
+	return strings.ReplaceAll(strings.ReplaceAll(raw, `\'`, `'`), `\"`, `"`)
+}
+
+func allChildrenThen(p *Path) *Path {
+	return new(func(node, root *yaml.Node) yit.Iterator {
+		switch node.Kind {
+		case yaml.MappingNode:
+			its := []yit.Iterator{}
+			for i, n := range node.Content {
+				if i%2 == 0 {
+					continue // skip child names
+				}
+				its = append(its, compose(yit.FromNode(n), p, root))
+			}
+			return yit.FromIterators(its...)
+
+		case yaml.SequenceNode:
+			its := []yit.Iterator{}
+			for i := 0; i < len(node.Content); i++ {
+				its = append(its, compose(yit.FromNode(node.Content[i]), p, root))
+			}
+			return yit.FromIterators(its...)
+
+		default:
+			return empty(node, root)
+		}
 	})
 }
 
 func arraySubscriptThen(subscript string, p *Path) *Path {
 	return new(func(node, root *yaml.Node) yit.Iterator {
+		if node.Kind == yaml.MappingNode && subscript == "*" {
+			its := []yit.Iterator{}
+			for i, n := range node.Content {
+				if i%2 == 0 {
+					continue // skip child names
+				}
+				its = append(its, compose(yit.FromNode(n), p, root))
+			}
+			return yit.FromIterators(its...)
+		}
 		if node.Kind != yaml.SequenceNode {
 			return empty(node, root)
 		}
@@ -215,7 +312,9 @@ func arraySubscriptThen(subscript string, p *Path) *Path {
 
 		its := []yit.Iterator{}
 		for _, s := range slice {
-			its = append(its, compose(yit.FromNode(node.Content[s]), p, root))
+			if s >= 0 && s < len(node.Content) {
+				its = append(its, compose(yit.FromNode(node.Content[s]), p, root))
+			}
 
 		}
 		return yit.FromIterators(its...)
@@ -226,7 +325,7 @@ func filterThen(filterLexemes []lexeme, p *Path) *Path {
 	filter := newFilter(newFilterNode(filterLexemes))
 	return new(func(node, root *yaml.Node) yit.Iterator {
 		if node.Kind != yaml.SequenceNode {
-			panic("not implemented")
+			return empty(node, root)
 		}
 
 		its := []yit.Iterator{}
