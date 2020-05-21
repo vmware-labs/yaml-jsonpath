@@ -157,7 +157,7 @@ func new(f func(node, root *yaml.Node) yit.Iterator) *Path {
 }
 
 func childrenThen(childNames string, p *Path) *Path {
-	c := strings.SplitN(childNames, ".", 2)
+	c := strings.SplitN(childNames, ".", 2) // TODO: support escaping of .
 	if len(c) == 2 {
 		return childThen(c[0], childrenThen(c[1], p))
 	}
@@ -168,6 +168,7 @@ func childThen(childName string, p *Path) *Path {
 	if childName == "*" {
 		return allChildrenThen(p)
 	}
+	childName = unescape(childName) // TODO: splitting child names has already happened too early
 	return new(func(node, root *yaml.Node) yit.Iterator {
 		if node.Kind != yaml.MappingNode {
 			return empty(node, root)
@@ -179,6 +180,10 @@ func childThen(childName string, p *Path) *Path {
 		}
 		return empty(node, root)
 	})
+}
+
+func unescape(raw string) string {
+	return strings.ReplaceAll(raw, "\\'", "'")
 }
 
 func allChildrenThen(p *Path) *Path {
