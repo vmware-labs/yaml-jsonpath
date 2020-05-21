@@ -1,9 +1,9 @@
-# Go YAML Path
+# YAML JsonPath
 
-[![GoDoc](https://godoc.org/github.com/glyn/go-yamlpath?status.svg)](https://godoc.org/github.com/glyn/go-yamlpath)
-[![Go Report Card](https://goreportcard.com/badge/glyn/go-yamlpath)](https://goreportcard.com/report/glyn/go-yamlpath)
+[![GoDoc](https://godoc.org/github.com/vmware-labs/yaml-jsonpath?status.svg)](https://godoc.org/github.com/vmware-labs/yaml-jsonpath)
+[![Go Report Card](https://goreportcard.com/badge/vmware-labs/yaml-jsonpath)](https://goreportcard.com/report/vmware-labs/yaml-jsonpath)
 
-[YAML node](https://godoc.org/gopkg.in/yaml.v3#Node) searching using path notation.
+JSONPath implementation for the [YAML node](https://godoc.org/gopkg.in/yaml.v3#Node) API.
 
 ## Syntax
 
@@ -137,9 +137,19 @@ See the [web application](./web/README.md) provided in this repository.
 
 ## References
 
-The following sources inspired the syntax and semantics of Go YAML Path:
+The following sources inspired the syntax and semantics of YAML JSONPath:
 
 * [JSONPath - XPath for JSON](https://goessner.net/articles/JsonPath/) by Stefan Goessner
 * [JSONPath Support](https://kubernetes.io/docs/reference/kubectl/jsonpath/) in the Kubernetes Reference documentation
 * [JSONPath User Guide](https://unofficial-kubernetes.readthedocs.io/en/latest/user-guide/jsonpath/) in the Unofficial Kubernetes documentation
 * [JSONPath Syntax](https://support.smartbear.com/alertsite/docs/monitors/api/endpoint/jsonpath.html) in the SmartBear AlertSite documentation
+
+## Contributing
+
+The yaml-jsonpath project team welcomes contributions from the community. If you wish to contribute code and you have not signed our contributor license agreement (CLA), our bot will update the issue when you open a Pull Request. For any questions about the CLA process, please refer to our [FAQ](https://cla.vmware.com/faq).
+
+For more detailed information, refer to [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License
+
+Apache License v2.0: see [LICENSE](./LICENSE) for details.

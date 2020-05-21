@@ -1,4 +1,4 @@
-module github.com/glyn/go-yamlpath
+module github.com/vmware-labs/yaml-jsonpath
 
 go 1.13
 

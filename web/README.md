@@ -1,4 +1,4 @@
-# Go YAML Path Evaluator Web Application
+# YAML JSONPath Evaluator Web Application
 
 To run this, issue the following from the root of this repository:
 ```

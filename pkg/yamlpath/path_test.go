@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Go YAML Path Authors
+ * Copyright 2020 VMware, Inc.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -10,8 +10,8 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/glyn/go-yamlpath/pkg/yamlpath"
 	"github.com/stretchr/testify/require"
+	"github.com/vmware-labs/yaml-jsonpath/pkg/yamlpath"
 	"gopkg.in/yaml.v3"
 )
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Go YAML Path Authors
+ * Copyright 2020 VMware, Inc.
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -11,8 +11,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/glyn/go-yamlpath/pkg/yamlpath"
 	"github.com/sergi/go-diff/diffmatchpatch"
+	"github.com/vmware-labs/yaml-jsonpath/pkg/yamlpath"
 	"gopkg.in/yaml.v3"
 )
 

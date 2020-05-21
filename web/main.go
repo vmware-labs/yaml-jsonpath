@@ -1,3 +1,9 @@
+/*
+ * Copyright 2020 VMware, Inc.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 package main
 
 import (
@@ -8,7 +14,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/glyn/go-yamlpath/pkg/yamlpath"
+	"github.com/vmware-labs/yaml-jsonpath/pkg/yamlpath"
 	"gopkg.in/yaml.v3"
 )
 
@@ -30,7 +36,7 @@ textarea, input {
 	resize: none;
   }
 </style>
-<h1>go-yamlpath evaluator</h1>
+<h1>yaml-jsonpath evaluator</h1>
 <table class="tg">
 <thead>
   <tr valign="top">
@@ -40,7 +46,7 @@ textarea, input {
 <pre>
 <textarea name="YAML document" cols="80" rows="30" placeholder="YAML...">{{ .YAML }}</textarea>
 </pre><br /><br />
-<label>JSON path</label> (<a href="https://github.com/glyn/go-yamlpath#syntax" target="_blank">syntax</a>):<br />
+<label>JSON path</label> (<a href="https://github.com/vmware-labs/yaml-jsonpath#syntax" target="_blank">syntax</a>):<br />
 <pre>
 <input type="text" size="80" name="JSON path" placeholder="JSON path..." value="{{ .JSONPath }}"><br />
 <input type="submit" value="Evaluate">
