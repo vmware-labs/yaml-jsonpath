@@ -103,8 +103,7 @@ textarea, input {
 		problem := false
 
 		var n yaml.Node
-		err := yaml.Unmarshal([]byte(y), &n)
-		if err != nil {
+		if err := yaml.Unmarshal([]byte(y), &n); err != nil {
 			problem = true
 			op.YAMLError = err
 		}

@@ -8,14 +8,27 @@ package yamlpath
 
 import (
 	"errors"
+	"fmt"
 	"strconv"
 	"strings"
 )
 
 func slice(index string, length int) ([]int, error) {
+	if union := strings.Split(index, ","); len(union) > 1 {
+		combination := []int{}
+		for i, idx := range union {
+			sl, err := slice(idx, length)
+			if err != nil {
+				return nil, fmt.Errorf("error in union member %d: %s", i, err)
+			}
+			combination = combine(combination, sl)
+		}
+		return combination, nil
+	}
 	from := 0
 	step := 1
 	var to int
+	index = strings.TrimSpace(index)
 	if index == "*" {
 		to = length
 	} else {
@@ -25,6 +38,7 @@ func slice(index string, length int) ([]int, error) {
 		}
 		p := []int{}
 		for i, s := range sliceParms {
+			s = strings.TrimSpace(s)
 			if i == 0 && s == "" {
 				p = append(p, 0)
 				continue
@@ -52,10 +66,13 @@ func slice(index string, length int) ([]int, error) {
 			to = from + 1
 		}
 		if len(p) >= 2 {
-			if p[1] > 0 {
+			if p[1] >= 0 {
 				to = p[1]
 			} else {
 				to = length + p[1]
+			}
+			if from < to {
+				step = 1
 			}
 		}
 		if len(p) == 3 {
@@ -76,4 +93,28 @@ func slice(index string, length int) ([]int, error) {
 		}
 	}
 	return slice, nil
+}
+
+func combine(a, b []int) []int {
+	if a == nil {
+		return b
+	}
+	if b == nil {
+		return b
+	}
+	present := map[int]struct{}{}
+	result := []int{}
+	for _, i := range a {
+		if _, pres := present[i]; !pres {
+			result = append(result, i)
+			present[i] = struct{}{}
+		}
+	}
+	for _, i := range b {
+		if _, pres := present[i]; !pres {
+			result = append(result, i)
+			present[i] = struct{}{}
+		}
+	}
+	return result
 }

@@ -15,21 +15,25 @@ Valid paths are strings conforming to the following BNF syntax.
 <identity> ::= ""                                        ; the current node
 <root> ::= "$"                                           ; the root node of a document
 <subpath> ::= <identity> | <child> <subpath> |
-              <child> <array access> <subpath> |
+              <array access> <subpath> |
               <recursive descent> <subpath>
 
 <child> ::= <dot child> | <bracket child>
 <dot child> ::= "." <child name> | ".*"                  ; named child or all children
-<bracket child> ::= "['" <child name> "']"               ; named child
+<bracket child> ::= "[" <child names> "]"                ; named children
+<child names> ::= "'" <child name> "'" |
+                  "'" <child name> "'" "," <child names> 
 <undotted child> ::= <child name> |                      ; named child
                      <child name> <array access> |       ; array access of named child
                     "*"                                  ; all children
                     "*" <array access>                   ; array access of all children
 
-<recursive descent> ::= ".." <child name>                ; all the descendants named <child name>
+<recursive descent> ::= ".." <child name> |              ; all the descendants named <child name>
+                        ".." <array access>              ; array access of all descendents
 
-<array access> ::= "[" <index> "]" | "[" <filter> "]"    ; zero or more elements of a sequence
+<array access> ::= "[" union "]" | "[" <filter> "]"      ; zero or more elements of a sequence
 
+<union> ::= <index> | <index> "," <union>
 <index> ::= <integer> | <range> | "*"                    ; specific index, range of indices, or all indices
 <range> ::= <integer> ":" <integer> |                    ; start (inclusive) to end (exclusive)
             <integer> ":" <integer> ":" <integer>        ; start (inclusive) to end (exclusive) by step
@@ -86,12 +90,14 @@ of terminating the `<subpath>` production in the BNF syntax.
 
 This matches the root node of the input YAML node. This matcher may be specified only at the start of the path. It is optional and, if omitted, the root node is matched before the rest of the path is applied. The output slice consists of just the root node.
 
-### Child: `.childname` or `['childname']`
+### Child: `.childname` or `['child', 'names', ...]`
 
-This matches the children with the given name of all the mapping nodes in the input slice. The output slice consists of all those children. The given name may be a single child name (no periods) or a series of single child names separated by periods. Non-mapping nodes in the input slice are not matched.
+This matches the children with the given names of all the mapping nodes in the input slice. The output slice consists of all those children. The given name may be a single child name (no periods) or a series of single child names separated by periods. Non-mapping nodes in the input slice are not matched.
 
 Although either form `.childname` or `['childname']` accepts a child name with embedded spaces, the 
 `['childname']` form may be more convenient in some situations.
+
+As a special case, `.*` also matches all the nodes in each sequence node in the input slice.
 
 ### Recursive Descent: `..childname` or `..*`
 

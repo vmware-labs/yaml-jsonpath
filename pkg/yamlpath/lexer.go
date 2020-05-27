@@ -219,6 +219,32 @@ func (l *lexer) consumed(token string, except ...string) bool {
 	return false
 }
 
+// consumedWhitespaces checks the input to see if, after whitespace is removed, it
+// starts with the given tokens. If so, it consumes the given
+// tokens and any whitespace and returns true. Otherwise, it returns false.
+func (l *lexer) consumedWhitespaced(tokens ...string) bool {
+	pos := l.pos
+	for _, token := range tokens {
+		// skip past whitespace
+		for {
+			if pos >= len(l.input) {
+				return false
+			}
+			rune, width := utf8.DecodeRuneInString(l.input[pos:])
+			if !unicode.IsSpace(rune) {
+				break
+			}
+			pos += width
+		}
+		if !strings.HasPrefix(l.input[pos:], token) {
+			return false
+		}
+		pos += len(token)
+	}
+	l.pos = pos
+	return true
+}
+
 // peek returns the next rune in the input but without consuming it.
 // it is equivalent to calling next() followed by backup()
 func (l *lexer) peek() (rune rune) {
@@ -228,6 +254,21 @@ func (l *lexer) peek() (rune rune) {
 	}
 	rune, l.width = utf8.DecodeRuneInString(l.input[l.pos:])
 	return rune
+}
+
+// peeked checks the input to see if it starts with the given token and does
+// not start with any of the given exceptions. If so, it returns true.
+// Otherwise, it returns false.
+func (l *lexer) peeked(token string, except ...string) bool {
+	if l.hasPrefix(token) {
+		for _, e := range except {
+			if l.hasPrefix(e) {
+				return false
+			}
+		}
+		return true
+	}
+	return false
 }
 
 // backup steps back one rune.
@@ -314,7 +355,7 @@ const (
 	leftBracket                             string = "["
 	rightBracket                            string = "]"
 	bracketQuote                            string = "['"
-	quoteBracket                            string = "']"
+	bracketDoubleQuote                      string = `["`
 	filterBegin                             string = "[?("
 	filterEnd                               string = ")]"
 	filterOpenBracket                       string = "("
@@ -327,6 +368,7 @@ const (
 	filterInequality                        string = "!="
 	filterMatchesRegularExpression          string = "=~"
 	filterStringLiteralDelimiter            string = "'"
+	filterStringLiteralAlternateDelimiter   string = `"`
 	filterRegularExpressionLiteralDelimiter string = "/"
 	filterRegularExpressionEscape           string = `\`
 	recursiveDescent                        string = ".."
@@ -388,8 +430,8 @@ func lexSubPath(l *lexer) stateFn {
 			}
 			childName = true
 		}
-		if !childName {
-			return l.errorf("child name missing")
+		if !childName && !l.peeked(leftBracket, bracketQuote, bracketDoubleQuote) {
+			return l.errorf("child name or array access or filter missing after recursive descent")
 		}
 		l.emit(lexemeRecursiveDescent)
 		return lexSubPath
@@ -411,19 +453,27 @@ func lexSubPath(l *lexer) stateFn {
 
 		return lexOptionalArrayIndex
 
-	case l.consumed(bracketQuote):
-		childName := false
+	case l.consumedWhitespaced("[", "'"): // bracketQuote
 		for {
-			if l.consumed(quoteBracket) {
+			if l.consumedWhitespaced("'", "]") {
 				break
 			}
 			if l.next() == eof {
 				return l.errorf("unmatched ['")
 			}
-			childName = true
 		}
-		if !childName {
-			return l.rawErrorf("child name missing from [''] before position %d", l.pos)
+		l.emit(lexemeBracketChild)
+
+		return lexOptionalArrayIndex
+
+	case l.consumedWhitespaced("[", `"`): // bracketDoubleQuote
+		for {
+			if l.consumedWhitespaced(`"`, "]") {
+				break
+			}
+			if l.next() == eof {
+				return l.errorf(`unmatched ["`)
+			}
 		}
 		l.emit(lexemeBracketChild)
 
@@ -433,6 +483,9 @@ func lexSubPath(l *lexer) stateFn {
 		l.emit(lexemeFilterBegin)
 		l.push(lexFilterEnd)
 		return lexFilterExprInitial
+
+	case l.peeked(leftBracket):
+		return lexOptionalArrayIndex
 
 	case l.lastEmittedLexemeType == lexemeEOF:
 		childName := false
@@ -457,7 +510,7 @@ func lexSubPath(l *lexer) stateFn {
 }
 
 func lexOptionalArrayIndex(l *lexer) stateFn {
-	if l.consumed(leftBracket, bracketQuote, filterBegin) {
+	if l.consumed(leftBracket, bracketQuote, bracketDoubleQuote, filterBegin) {
 		subscript := false
 		for {
 			if l.consumed(rightBracket) {
@@ -636,17 +689,21 @@ func lexFilterEnd(l *lexer) stateFn {
 func validateArrayIndex(l *lexer) bool {
 	subscript := l.value()
 	index := strings.TrimSuffix(strings.TrimPrefix(subscript, leftBracket), rightBracket)
-	if index != "*" {
-		sliceParms := strings.Split(index, ":")
-		if len(sliceParms) > 3 {
-			l.rawErrorf("invalid array index, too many colons: %s before position %d", subscript, l.pos)
-			return false
-		}
-		for _, s := range sliceParms {
-			if s != "" {
-				if _, err := strconv.Atoi(s); err != nil {
-					l.rawErrorf("invalid array index containing non-integer value: %s before position %d", subscript, l.pos)
-					return false
+	union := strings.Split(index, ",")
+	for _, idx := range union {
+		if idx != "*" {
+			sliceParms := strings.Split(idx, ":")
+			if len(sliceParms) > 3 {
+				l.rawErrorf("invalid array index, too many colons: %s before position %d", subscript, l.pos)
+				return false
+			}
+			for _, s := range sliceParms {
+				s = strings.TrimSpace(s)
+				if s != "" {
+					if _, err := strconv.Atoi(s); err != nil {
+						l.rawErrorf("invalid array index containing non-integer value: %s before position %d", subscript, l.pos)
+						return false
+					}
 				}
 			}
 		}
@@ -690,14 +747,20 @@ func lexNumericLiteral(l *lexer, nextState stateFn) (stateFn, bool) {
 }
 
 func lexStringLiteral(l *lexer, nextState stateFn) (stateFn, bool) {
+	var quote string
 	if l.hasPrefix(filterStringLiteralDelimiter) {
+		quote = filterStringLiteralDelimiter
+	} else if l.hasPrefix(filterStringLiteralAlternateDelimiter) {
+		quote = filterStringLiteralAlternateDelimiter
+	}
+	if quote != "" {
 		pos := l.pos
 		context := l.context()
 		for {
 			if l.next() == eof {
-				return l.rawErrorf(`unmatched string delimiter "'" at position %d, following %q`, pos, context), true
+				return l.rawErrorf(`unmatched string delimiter %s at position %d, following %q`, quote, pos, context), true
 			}
-			if l.hasPrefix(filterStringLiteralDelimiter) {
+			if l.hasPrefix(quote) {
 				break
 			}
 		}
