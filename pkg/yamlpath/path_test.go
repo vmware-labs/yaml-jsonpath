@@ -461,7 +461,7 @@ feather duster:
 		{
 			name:            "unclosed bracket child",
 			path:            "$['store",
-			expectedPathErr: `unmatched [' at position 8, following "$['store"`,
+			expectedPathErr: `unmatched "'" at position 8, following "$['store"`,
 		},
 		{
 			name: "recursive descent",

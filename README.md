@@ -19,16 +19,26 @@ Valid paths are strings conforming to the following BNF syntax.
               <recursive descent> <subpath>
 
 <child> ::= <dot child> | <bracket child>
-<dot child> ::= "." <child name> | ".*"                  ; named child or all children
+<dot child> ::= "." <dotted child name> | ".*"           ; named child (restricted characters) or all children
 <bracket child> ::= "[" <child names> "]"                ; named children
-<child names> ::= "'" <child name> "'" |
-                  "'" <child name> "'" "," <child names> 
-<undotted child> ::= <child name> |                      ; named child
-                     <child name> <array access> |       ; array access of named child
+<child names> ::= <child name> |
+                  <child name> "," <child names> 
+<undotted child> ::= <dotted child name> |               ; named child (restricted characters)
+                     <dotted child name><array access> | ; array access of named child
                     "*"                                  ; all children
                     "*" <array access>                   ; array access of all children
+<child name> ::= "'" <single quoted string> "'" |
+                 '"' <double quoted string> '"'
+<single quoted string> ::= "\'" <single quoted string> | ; escaped single quote
+                           "\\" <single quoted string> | ; escaped backslash
+                           <string without ' or \> <single quoted string> |
+                           ""                            ; empty string
+<double quoted string> ::= '\"' <double quoted string> | ; escaped double quote
+                           '\\' <double quoted string> | ; escaped backslash
+                           <string without " or \> <double quoted string> |
+                           ""                            ; empty string
 
-<recursive descent> ::= ".." <child name> |              ; all the descendants named <child name>
+<recursive descent> ::= ".." <dotted child name> |       ; all the descendants named <dotted child name>
                         ".." <array access>              ; array access of all descendents
 
 <array access> ::= "[" union "]" | "[" <filter> "]"      ; zero or more elements of a sequence
