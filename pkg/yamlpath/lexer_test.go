@@ -35,11 +35,19 @@ func TestLexer(t *testing.T) {
 			},
 		},
 		{
-			name: "unmatched closing bracket",
+			name: "unmatched closing parenthesis",
 			path: ")",
 			expected: []lexeme{
 				{typ: lexemeRoot, val: "$"},
 				{typ: lexemeError, val: `syntax error at position 0, following ""`},
+			},
+		},
+		{
+			name: "unmatched closing square bracket",
+			path: "]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeError, val: `child name missing at position 0, following ""`},
 			},
 		},
 		{
