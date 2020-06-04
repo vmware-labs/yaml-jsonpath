@@ -46,18 +46,21 @@ func TestRegressionSuite(t *testing.T) {
 			consensus++
 		}
 		if pass := t.Run(tc.Name, func(t *testing.T) {
-			defer func() {
-				p := recover()
-				if p != nil {
-					// fail on panic regardless of whether there is a consensus
-					t.Fatalf("Panicked on test: %s: %v", tc.Name, p)
-				}
-			}()
+			// defer func() {
+			// 	p := recover()
+			// 	if p != nil {
+			// 		// fail on panic regardless of whether there is a consensus
+			// 		t.Fatalf("Panicked on test: %s: %v", tc.Name, p)
+			// 	}
+			// }()
 
 			path, err := yamlpath.NewPath(tc.Selector)
 			// if there is a consensus, check we agree with it
 			if tc.Consensus.Kind > 0 {
 				require.NoError(t, err, "NewPath failed with selector: %s, test: %s", tc.Selector, tc.Name)
+			}
+			if err != nil {
+				return
 			}
 
 			results, err := path.Find(&tc.Document)
