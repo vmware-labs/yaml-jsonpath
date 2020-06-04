@@ -880,6 +880,9 @@ price: 12.99
 		}
 		t.Run(tc.name, func(t *testing.T) {
 			p, err := yamlpath.NewPath(tc.path)
+			if err != nil {
+				require.Nil(t, p)
+			}
 			if tc.expectedPathErr == "" {
 				require.NoError(t, err)
 			} else {
