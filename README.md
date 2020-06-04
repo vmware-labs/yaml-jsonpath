@@ -137,7 +137,7 @@ is false (because there were no matches on that side).
 
 Comparison expressions are built from existence and/or comparison filters using familiar logical operators -- disjunction ("or", `||`), conjunction ("and", `&&`), and negation ("not", `!`) -- together with parenthesised expressions. 
 
-## Try it out
+## Trying it out
 
 See the [web application](./web/README.md) provided in this repository.
 
@@ -149,6 +149,20 @@ The following sources inspired the syntax and semantics of YAML JSONPath:
 * [JSONPath Support](https://kubernetes.io/docs/reference/kubectl/jsonpath/) in the Kubernetes Reference documentation
 * [JSONPath User Guide](https://unofficial-kubernetes.readthedocs.io/en/latest/user-guide/jsonpath/) in the Unofficial Kubernetes documentation
 * [JSONPath Syntax](https://support.smartbear.com/alertsite/docs/monitors/api/endpoint/jsonpath.html) in the SmartBear AlertSite documentation
+
+## Developing
+
+Run the tests as usual:
+```
+go test ./...
+```
+
+Check linting (so you don't get caught out by CI), after installing [golangci-lint](https://golangci-lint.run/):
+```
+./scripts/check-lint.sh
+```
+
+Fuzzing is also [available](./pkg/yamlpath/fuzz/README.md).
 
 ## Contributing
 
