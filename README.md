@@ -149,6 +149,7 @@ The following sources inspired the syntax and semantics of YAML JSONPath:
 * [JSONPath Support](https://kubernetes.io/docs/reference/kubectl/jsonpath/) in the Kubernetes Reference documentation
 * [JSONPath User Guide](https://unofficial-kubernetes.readthedocs.io/en/latest/user-guide/jsonpath/) in the Unofficial Kubernetes documentation
 * [JSONPath Syntax](https://support.smartbear.com/alertsite/docs/monitors/api/endpoint/jsonpath.html) in the SmartBear AlertSite documentation
+* [Parsing JSON is a Minefield 💣](http://seriot.ch/parsing_json.php) by Nicolas Seriot
 
 ## Developing
 
