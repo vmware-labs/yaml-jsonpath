@@ -146,6 +146,7 @@ See the [web application](./web/README.md) provided in this repository.
 The following sources inspired the syntax and semantics of YAML JSONPath:
 
 * [JSONPath - XPath for JSON](https://goessner.net/articles/JsonPath/) by Stefan Goessner
+* [JSONPath Comparison](https://cburgmer.github.io/json-path-comparison/) by Christoph Burgmer
 * [JSONPath Support](https://kubernetes.io/docs/reference/kubectl/jsonpath/) in the Kubernetes Reference documentation
 * [JSONPath User Guide](https://unofficial-kubernetes.readthedocs.io/en/latest/user-guide/jsonpath/) in the Unofficial Kubernetes documentation
 * [JSONPath Syntax](https://support.smartbear.com/alertsite/docs/monitors/api/endpoint/jsonpath.html) in the SmartBear AlertSite documentation
