@@ -981,6 +981,12 @@ another: entry`,
 			path:            `$..[?(@.key>=500)]`,
 			expectedStrings: []string{"{\"key\": 500}\n", "{\"key\": 600}\n"},
 		},
+		{
+			name:            "union with wildcard and numbers (deviation from comparison project consensus)",
+			input:           `["a","b","c"]`,
+			path:            `$[*,1,0,*]`,
+			expectedStrings: []string{"\"a\"\n", "\"b\"\n", "\"c\"\n", "\"b\"\n", "\"a\"\n", "\"a\"\n", "\"b\"\n", "\"c\"\n"},
+		},
 	}
 
 	focussed := false

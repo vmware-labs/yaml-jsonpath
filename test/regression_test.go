@@ -41,27 +41,36 @@ func TestRegressionSuite(t *testing.T) {
 		if focussed && !tc.Focus {
 			continue
 		}
+		if tc.Exclude && !tc.Focus {
+			continue
+		}
 		tests++
 		if tc.Consensus.Kind > 0 {
 			consensus++
 		}
 		if pass := t.Run(tc.Name, func(t *testing.T) {
-			// defer func() {
-			// 	p := recover()
-			// 	if p != nil {
-			// 		// fail on panic regardless of whether there is a consensus
-			// 		t.Fatalf("Panicked on test: %s: %v", tc.Name, p)
-			// 	}
-			// }()
+			defer func() {
+				p := recover()
+				if p != nil {
+					// fail on panic regardless of whether there is a consensus
+					t.Fatalf("Panicked on test: %s: %v", tc.Name, p)
+				}
+			}()
 
 			path, err := yamlpath.NewPath(tc.Selector)
-			// if there is a consensus, check we agree with it
+			// if there is a consensus, check that the returned error agrees with it
 			if tc.Consensus.Kind > 0 {
-				require.NoError(t, err, "NewPath failed with selector: %s, test: %s", tc.Selector, tc.Name)
+				if tc.Consensus.Value == "NOT_SUPPORTED" {
+					require.Error(t, err, "NewPath allowed selector not supported by the consensus: %s, test: %s", tc.Selector, tc.Name)
+				} else {
+					require.NoError(t, err, "NewPath failed with selector: %s, test: %s", tc.Selector, tc.Name)
+				}
 			}
 			if err != nil {
+				require.Nil(t, path)
 				return
 			}
+			require.NotNil(t, path)
 
 			results, err := path.Find(&tc.Document)
 			// if there is a consensus, check we agree with it
@@ -124,6 +133,7 @@ type testcase struct {
 	Ordered   bool
 	Consensus yaml.Node
 	Focus     bool // if true, run only tests with focus set to true
+	Exclude   bool // if true, do not run this test unless it is focussed
 }
 
 type regressionSuite struct {

@@ -21,7 +21,7 @@ func slice(index string, length int) ([]int, error) {
 			if err != nil {
 				return nil, fmt.Errorf("error in union member %d: %s", i, err)
 			}
-			combination = combine(combination, sl)
+			combination = append(combination, sl...)
 		}
 		return combination, nil
 	}
@@ -93,28 +93,4 @@ func slice(index string, length int) ([]int, error) {
 		}
 	}
 	return slice, nil
-}
-
-func combine(a, b []int) []int {
-	if a == nil {
-		return b
-	}
-	if b == nil {
-		return b
-	}
-	present := map[int]struct{}{}
-	result := []int{}
-	for _, i := range a {
-		if _, pres := present[i]; !pres {
-			result = append(result, i)
-			present[i] = struct{}{}
-		}
-	}
-	for _, i := range b {
-		if _, pres := present[i]; !pres {
-			result = append(result, i)
-			present[i] = struct{}{}
-		}
-	}
-	return result
 }
