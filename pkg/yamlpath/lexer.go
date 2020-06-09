@@ -245,6 +245,22 @@ func (l *lexer) consumedWhitespaced(tokens ...string) bool {
 	return true
 }
 
+// consumeWhitespace consumes any leading whitespace.
+func (l *lexer) consumeWhitespace() {
+	pos := l.pos
+	for {
+		if pos >= len(l.input) {
+			break
+		}
+		rune, width := utf8.DecodeRuneInString(l.input[pos:])
+		if !unicode.IsSpace(rune) {
+			break
+		}
+		pos += width
+	}
+	l.pos = pos
+}
+
 // peek returns the next rune in the input but without consuming it.
 // it is equivalent to calling next() followed by backup()
 func (l *lexer) peek() (rune rune) {
@@ -269,6 +285,30 @@ func (l *lexer) peeked(token string, except ...string) bool {
 		return true
 	}
 	return false
+}
+
+// peekedWhitespaces checks the input to see if, after whitespace is removed, it
+// starts with the given tokens. If so, it returns true. Otherwise, it returns false.
+func (l *lexer) peekedWhitespaced(tokens ...string) bool {
+	pos := l.pos
+	for _, token := range tokens {
+		// skip past whitespace
+		for {
+			if pos >= len(l.input) {
+				return false
+			}
+			rune, width := utf8.DecodeRuneInString(l.input[pos:])
+			if !unicode.IsSpace(rune) {
+				break
+			}
+			pos += width
+		}
+		if !strings.HasPrefix(l.input[pos:], token) {
+			return false
+		}
+		pos += len(token)
+	}
+	return true
 }
 
 // backup steps back one rune.
@@ -407,6 +447,27 @@ func lexRoot(l *lexer) stateFn {
 	return lexSubPath
 }
 
+// consumedEscapedString consumes a string with the given string validly escaped using "\" and returns
+// true if and only if such a string was consumed.
+func consumedEscapedString(l *lexer, quote string) bool {
+	for {
+		switch {
+		case l.peeked(quote): // unescaped quote
+			return true
+		case l.consumed(`\` + quote):
+		case l.consumed(`\\`):
+		case l.peeked(`\`):
+			l.errorf("unsupported escape sequence inside %s%s", quote, quote)
+			return false
+		default:
+			if l.next() == eof {
+				l.errorf("unmatched %s", enquote(quote))
+				return false
+			}
+		}
+	}
+}
+
 func lexSubPath(l *lexer) stateFn {
 	switch {
 	case l.hasPrefix(")"):
@@ -453,28 +514,30 @@ func lexSubPath(l *lexer) stateFn {
 
 		return lexOptionalArrayIndex
 
-	case l.consumedWhitespaced("[", "'"): // bracketQuote
+	case l.peekedWhitespaced("[", "'") || l.peekedWhitespaced("[", `"`): // bracketQuote or bracketDoubleQuote
+		l.consumedWhitespaced("[")
 		for {
-			if l.consumedWhitespaced("'", "]") {
+			l.consumeWhitespace()
+			quote := string(l.next())
+
+			if !consumedEscapedString(l, quote) {
+				return nil
+			}
+			if !l.consumed(quote) {
+				return l.errorf(`missing %s`, enquote(quote))
+			}
+			if l.consumedWhitespaced(",") {
+				if !l.peekedWhitespaced("'") && !l.peekedWhitespaced(`"`) {
+					return l.errorf(`missing %s or %s`, enquote("'"), enquote(`"`))
+				}
+			} else {
 				break
 			}
-			if l.next() == eof {
-				return l.errorf("unmatched ['")
-			}
 		}
-		l.emit(lexemeBracketChild)
-
-		return lexOptionalArrayIndex
-
-	case l.consumedWhitespaced("[", `"`): // bracketDoubleQuote
-		for {
-			if l.consumedWhitespaced(`"`, "]") {
-				break
-			}
-			if l.next() == eof {
-				return l.errorf(`unmatched ["`)
-			}
+		if !l.consumedWhitespaced("]") {
+			return l.errorf(`missing "]" or ","`)
 		}
+
 		l.emit(lexemeBracketChild)
 
 		return lexOptionalArrayIndex
@@ -539,6 +602,19 @@ func lexOptionalArrayIndex(l *lexer) stateFn {
 	}
 
 	return lexSubPath
+}
+
+func enquote(quote string) string {
+	switch quote {
+	case "'":
+		return `"'"`
+
+	case `"`:
+		return `'"'`
+
+	default:
+		panic(fmt.Sprintf(`enquote called with incorrect argument %q`, quote))
+	}
 }
 
 func lexFilterExprInitial(l *lexer) stateFn {

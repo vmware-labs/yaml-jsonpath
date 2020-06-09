@@ -186,11 +186,11 @@ func TestLexer(t *testing.T) {
 			},
 		},
 		{
-			name: "bracket child with mixed quotes",
+			name: "bracket child with unmatched quotes",
 			path: `$["child']`,
 			expected: []lexeme{
 				{typ: lexemeRoot, val: "$"},
-				{typ: lexemeError, val: `unmatched [" at position 10, following "$[\"child']"`},
+				{typ: lexemeError, val: `unmatched '"' at position 10, following "$[\"child']"`},
 			},
 		},
 		{
@@ -237,6 +237,15 @@ func TestLexer(t *testing.T) {
 			expected: []lexeme{
 				{typ: lexemeRoot, val: "$"},
 				{typ: lexemeBracketChild, val: "[ 'child' , 'child2' ]"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "bracket child union with mixed quotes",
+			path: `$[ 'child' , "child2" ]`,
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketChild, val: `[ 'child' , "child2" ]`},
 				{typ: lexemeIdentity, val: ""},
 			},
 		},
@@ -1553,6 +1562,64 @@ func TestLexer(t *testing.T) {
 				{typ: lexemeDotChild, val: ".child"},
 				{typ: lexemeFilterMatchesRegularExpression, val: "=~"},
 				{typ: lexemeError, val: "invalid regular expression at position 13, following \"=~\": error parsing regexp: missing closing ): `(.*`"},
+			},
+		},
+		{
+			name: "unescaped single quote in bracket child name",
+			path: `$['single'quote']`,
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeError, val: `missing "]" or "," at position 10, following "$['single'"`},
+			},
+		},
+		{
+			name: "escaped single quote in bracket child name",
+			path: `$['single\']quote']`, // apparent '] to catch poor lexing
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketChild, val: `['single\']quote']`}, // still escaped for later parsing
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "escaped backslash in bracket child name",
+			path: `$['\\']`,
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketChild, val: `['\\']`}, // still escaped for later parsing
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "unescaped single quote after escaped backslash in bracket child name",
+			path: `$['single\\'quote']`,
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeError, val: `missing "]" or "," at position 12, following "$['single\\\\'"`},
+			},
+		},
+		{
+			name: "unsupported escape sequence in bracket child name",
+			path: `$['\n']`,
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeError, val: `unsupported escape sequence inside '' at position 3, following "$['"`},
+			},
+		},
+		{
+			name: "unclosed and empty bracket child name with space",
+			path: `$[ '`,
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeError, val: `unmatched "'" at position 4, following "$[ '"`},
+			},
+		},
+		{
+			name: "unclosed and empty bracket child name with formfeed",
+			path: "[\f'",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeError, val: "unmatched \"'\" at position 3, following \"[\\f'\""},
 			},
 		},
 	}
