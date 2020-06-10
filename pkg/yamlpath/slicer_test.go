@@ -50,6 +50,13 @@ func TestSlicer(t *testing.T) {
 			expectedErr: "",
 		},
 		{
+			name:        "wildcard with duplicated numbers (deviation from comparison project consensus)",
+			index:       "*,1,0,1,*",
+			length:      3,
+			expected:    []int{0, 1, 2, 1, 0, 1, 0, 1, 2},
+			expectedErr: "",
+		},
+		{
 			name:        "range with everything omitted, short form",
 			index:       ":",
 			length:      4,
