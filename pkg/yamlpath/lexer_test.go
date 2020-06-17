@@ -128,7 +128,16 @@ func TestLexer(t *testing.T) {
 			expected: []lexeme{
 				{typ: lexemeRoot, val: "$"},
 				{typ: lexemeDotChild, val: ".child"},
-				{typ: lexemeError, val: "invalid array index, too many colons: [1:2:3:4] before position 16"},
+				{typ: lexemeError, val: "invalid array index [1:2:3:4] before position 16: malformed array index, too many colons"},
+			},
+		},
+		{
+			name: "dot child with array subscript with zero step",
+			path: "$.child[1:2:0]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeError, val: "invalid array index [1:2:0] before position 14: array index step value must be non-zero"},
 			},
 		},
 		{
@@ -137,7 +146,7 @@ func TestLexer(t *testing.T) {
 			expected: []lexeme{
 				{typ: lexemeRoot, val: "$"},
 				{typ: lexemeDotChild, val: ".child"},
-				{typ: lexemeError, val: "invalid array index containing non-integer value: [1:2:a] before position 14"},
+				{typ: lexemeError, val: "invalid array index [1:2:a] before position 14: non-integer array index"},
 			},
 		},
 		{
@@ -274,7 +283,7 @@ func TestLexer(t *testing.T) {
 			expected: []lexeme{
 				{typ: lexemeRoot, val: "$"},
 				{typ: lexemeBracketChild, val: "['child']"},
-				{typ: lexemeError, val: "invalid array index, too many colons: [1:2:3:4] before position 19"},
+				{typ: lexemeError, val: "invalid array index [1:2:3:4] before position 19: malformed array index, too many colons"},
 			},
 		},
 		{
@@ -283,7 +292,7 @@ func TestLexer(t *testing.T) {
 			expected: []lexeme{
 				{typ: lexemeRoot, val: "$"},
 				{typ: lexemeBracketChild, val: "['child']"},
-				{typ: lexemeError, val: "invalid array index containing non-integer value: [1:2:a] before position 17"},
+				{typ: lexemeError, val: "invalid array index [1:2:a] before position 17: non-integer array index"},
 			},
 		},
 		{
@@ -356,7 +365,7 @@ func TestLexer(t *testing.T) {
 			expected: []lexeme{
 				{typ: lexemeRoot, val: "$"},
 				{typ: lexemeBracketChild, val: "['child']"},
-				{typ: lexemeError, val: "invalid array index, too many colons: [1:2:3:4] before position 19"},
+				{typ: lexemeError, val: "invalid array index [1:2:3:4] before position 19: malformed array index, too many colons"},
 			},
 		},
 		{
@@ -365,7 +374,7 @@ func TestLexer(t *testing.T) {
 			expected: []lexeme{
 				{typ: lexemeRoot, val: "$"},
 				{typ: lexemeBracketChild, val: "['child']"},
-				{typ: lexemeError, val: "invalid array index, too many colons: [0,1:2:3:4] before position 21"},
+				{typ: lexemeError, val: "invalid array index [0,1:2:3:4] before position 21: error in union member 1: malformed array index, too many colons"},
 			},
 		},
 		{
@@ -374,7 +383,7 @@ func TestLexer(t *testing.T) {
 			expected: []lexeme{
 				{typ: lexemeRoot, val: "$"},
 				{typ: lexemeBracketChild, val: "['child']"},
-				{typ: lexemeError, val: "invalid array index containing non-integer value: [1:2:a] before position 17"},
+				{typ: lexemeError, val: "invalid array index [1:2:a] before position 17: non-integer array index"},
 			},
 		},
 		{

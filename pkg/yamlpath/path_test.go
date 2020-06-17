@@ -738,19 +738,19 @@ price: 8.95
 			expectedPathErr: "",
 		},
 		{
-			name: "array subscript -2:-4",
-			path: "$.store.book[-2:-4]",
+			name: "array subscript -3:-1",
+			path: "$.store.book[-3:-1]",
 			expectedStrings: []string{
+				`category: fiction
+author: Evelyn Waugh
+title: Sword of Honour
+price: 12.99
+`,
 				`category: fiction
 author: Herman Melville
 title: Moby Dick
 isbn: 0-553-21311-3
 price: 8.99
-`,
-				`category: fiction
-author: Evelyn Waugh
-title: Sword of Honour
-price: 12.99
 `},
 			expectedPathErr: "",
 		},
@@ -767,7 +767,19 @@ price: 22.99
 			expectedPathErr: "",
 		},
 		{
-			name:            "array subscript out of bounds:",
+			name:            "missing array subscript",
+			path:            "$.store.book[]",
+			expectedStrings: []string{},
+			expectedPathErr: "subscript missing from [] before position 14",
+		},
+		{
+			name:            "malformed array subscript",
+			path:            "$.store.book[::0]",
+			expectedStrings: []string{},
+			expectedPathErr: "invalid array index [::0] before position 17: array index step value must be non-zero",
+		},
+		{
+			name:            "array subscript out of bounds",
 			path:            "$.store.book[99]",
 			expectedStrings: []string{},
 			expectedPathErr: "",
