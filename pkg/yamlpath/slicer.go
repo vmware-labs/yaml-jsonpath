@@ -25,72 +25,119 @@ func slice(index string, length int) ([]int, error) {
 		}
 		return combination, nil
 	}
-	from := 0
-	step := 1
-	var to int
+
 	index = strings.TrimSpace(index)
+
 	if index == "*" {
-		to = length
-	} else {
-		sliceParms := strings.Split(index, ":")
-		if len(sliceParms) > 3 {
-			return nil, errors.New("malformed array index")
-		}
-		p := []int{}
-		for i, s := range sliceParms {
-			s = strings.TrimSpace(s)
-			if i == 0 && s == "" {
-				p = append(p, 0)
-				continue
-			}
-			if i == 1 && s == "" {
-				p = append(p, length)
-				continue
-			}
-			if i == 2 && s == "" {
-				p = append(p, 1)
-				continue
-			}
+		return indices(0, length, 1, length), nil
+	}
+
+	subscr := strings.Split(index, ":")
+	if len(subscr) > 3 {
+		return nil, errors.New("malformed array index, too many colons")
+	}
+	type subscript struct {
+		present bool
+		value   int
+	}
+	var subscripts []subscript = []subscript{{false, 0}, {false, 0}, {false, 0}}
+	const (
+		sFrom = iota
+		sTo
+		sStep
+	)
+	for i, s := range subscr {
+		s = strings.TrimSpace(s)
+		if s != "" {
 			n, err := strconv.Atoi(s)
 			if err != nil {
 				return nil, errors.New("non-integer array index")
 			}
-			p = append(p, n)
-		}
-		from = p[0]
-		if from < 0 {
-			from = length + from
-			to = from - 1
-			step = -1
-		} else {
-			to = from + 1
-		}
-		if len(p) >= 2 {
-			if p[1] >= 0 {
-				to = p[1]
-			} else {
-				to = length + p[1]
+			subscripts[i] = subscript{
+				present: true,
+				value:   n,
 			}
-			if from < to {
-				step = 1
-			}
-		}
-		if len(p) == 3 {
-			step = p[2]
-		}
-		if step < 0 && from <= to {
-			from, to = to-1, from-1
 		}
 	}
+
+	// pick out the case of a single subscript first since the "to" value needs special-casing
+	if len(subscr) == 1 {
+		if !subscripts[sFrom].present {
+			return nil, errors.New("array index missing")
+		}
+		from := subscripts[sFrom].value
+		if from < 0 {
+			from += length
+		}
+		return indices(from, from+1, 1, length), nil
+	}
+
+	var from, to, step int
+
+	if subscripts[sStep].present {
+		step = subscripts[sStep].value
+		if step == 0 {
+			return nil, errors.New("array index step value must be non-zero")
+		}
+	} else {
+		step = 1
+	}
+
+	if subscripts[sFrom].present {
+		from = subscripts[sFrom].value
+		if from < 0 {
+			from += length
+		}
+	} else {
+		if step > 0 {
+			from = 0
+		} else {
+			from = length - 1
+		}
+	}
+
+	if subscripts[sTo].present {
+		to = subscripts[sTo].value
+		if to < 0 {
+			to += length
+		}
+	} else {
+		if step > 0 {
+			to = length
+		} else {
+			to = -1
+		}
+	}
+
+	return indices(from, to, step, length), nil
+}
+
+func indices(from, to, step, length int) []int {
 	slice := []int{}
 	if step > 0 {
+		if from < 0 {
+			from = 0 // avoid CPU attack
+		}
+		if to > length {
+			to = length // avoid CPU attack
+		}
 		for i := from; i < to; i += step {
-			slice = append(slice, i)
+			if 0 <= i && i < length {
+				slice = append(slice, i)
+			}
 		}
 	} else if step < 0 {
+		if from > length {
+			from = length // avoid CPU attack
+		}
+		if to < -1 {
+			to = -1 // avoid CPU attack
+		}
 		for i := from; i > to; i += step {
-			slice = append(slice, i)
+			if 0 <= i && i < length {
+				slice = append(slice, i)
+			}
 		}
 	}
-	return slice, nil
+	return slice
 }

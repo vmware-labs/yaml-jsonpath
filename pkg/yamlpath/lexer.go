@@ -765,24 +765,9 @@ func lexFilterEnd(l *lexer) stateFn {
 func validateArrayIndex(l *lexer) bool {
 	subscript := l.value()
 	index := strings.TrimSuffix(strings.TrimPrefix(subscript, leftBracket), rightBracket)
-	union := strings.Split(index, ",")
-	for _, idx := range union {
-		if idx != "*" {
-			sliceParms := strings.Split(idx, ":")
-			if len(sliceParms) > 3 {
-				l.rawErrorf("invalid array index, too many colons: %s before position %d", subscript, l.pos)
-				return false
-			}
-			for _, s := range sliceParms {
-				s = strings.TrimSpace(s)
-				if s != "" {
-					if _, err := strconv.Atoi(s); err != nil {
-						l.rawErrorf("invalid array index containing non-integer value: %s before position %d", subscript, l.pos)
-						return false
-					}
-				}
-			}
-		}
+	if _, err := slice(index, 0); err != nil {
+		l.rawErrorf("invalid array index %s before position %d: %s", subscript, l.pos, err)
+		return false
 	}
 	return true
 }
