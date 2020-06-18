@@ -36,7 +36,13 @@ textarea, input {
 	resize: none;
   }
 </style>
+{{if .Version}}
+<span title="version: {{ .Version }}">
+{{end}}
 <h1>yaml-jsonpath evaluator</h1>
+{{if .Version}}
+</span>
+{{end}}
 <table class="tg">
 <thead>
   <tr valign="top">
@@ -86,19 +92,22 @@ textarea, input {
 			JSONPathError error
 			Success       bool
 			Output        string
+			Version       string
+		}
+
+		op := output{
+			Version: os.Getenv("GAE_VERSION"),
 		}
 
 		if r.Method != http.MethodPost {
-			if e := tmpl.Execute(w, nil); e != nil {
+			if e := tmpl.Execute(w, op); e != nil {
 				respondWithError(w, e)
 			}
 			return
 		}
 
 		y := r.FormValue("YAML document")
-		op := output{
-			YAML: y,
-		}
+		op.YAML = y
 
 		problem := false
 
