@@ -52,7 +52,8 @@ textarea, input {
 <pre>
 <textarea name="YAML document" cols="80" rows="30" placeholder="YAML...">{{ .YAML }}</textarea>
 </pre><br /><br />
-<label>JSON path</label> (<a href="https://github.com/vmware-labs/yaml-jsonpath#syntax" target="_blank">syntax</a>):<br />
+<label>JSON path</label>
+(<a href="https://github.com/vmware-labs/yaml-jsonpath/tree/{{ .Version }}#syntax" target="_blank">syntax</a>):<br />
 <pre>
 <input type="text" size="80" name="JSON path" placeholder="JSON path..." value="{{ .JSONPath }}"><br />
 <input type="submit" value="Evaluate">
