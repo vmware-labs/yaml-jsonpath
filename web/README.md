@@ -2,7 +2,7 @@
 
 To run this locally, issue the following from the root of this repository:
 ```
-go run ./web
+GAE_VERSION=$(git rev-parse --short HEAD) go run ./web
 ```
 
 Then navigate to [localhost:8080](http://localhost:8080).
