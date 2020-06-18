@@ -1,4 +1,4 @@
-# YAML JsonPath
+# YAML JSONPath
 
 [![GoDoc](https://godoc.org/github.com/vmware-labs/yaml-jsonpath?status.svg)](https://godoc.org/github.com/vmware-labs/yaml-jsonpath)
 [![Go Report Card](https://goreportcard.com/badge/vmware-labs/yaml-jsonpath)](https://goreportcard.com/report/vmware-labs/yaml-jsonpath)
