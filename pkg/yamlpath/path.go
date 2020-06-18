@@ -9,6 +9,7 @@ package yamlpath
 import (
 	"errors"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/dprotaso/go-yit"
 	"gopkg.in/yaml.v3"
@@ -227,15 +228,20 @@ func bracketChildNames(childNames string) []string {
 	return unquotedChildren
 }
 
-func balanced(c string, q byte) bool {
+func balanced(c string, q rune) bool {
 	bal := true
-	for i := 0; i < len(c); i++ {
-		if c[i] == q {
-			if i > 0 && c[i-1] == '\\' {
+	prev := eof
+	for i := 0; i < len(c); {
+		rune, width := utf8.DecodeRuneInString(c[i:])
+		i += width
+		if rune == q {
+			if i > 0 && prev == '\\' {
+				prev = rune
 				continue
 			}
 			bal = !bal
 		}
+		prev = rune
 	}
 	return bal
 }
@@ -260,7 +266,23 @@ func bracketChildThen(childNames string, p *Path) *Path {
 }
 
 func unescape(raw string) string {
-	return strings.ReplaceAll(strings.ReplaceAll(raw, `\'`, `'`), `\"`, `"`)
+	esc := ""
+	escaped := false
+	for i := 0; i < len(raw); {
+		rune, width := utf8.DecodeRuneInString(raw[i:])
+		i += width
+		if rune == '\\' {
+			if escaped {
+				esc += string(rune)
+			}
+			escaped = !escaped
+			continue
+		}
+		escaped = false
+		esc += string(rune)
+	}
+
+	return esc
 }
 
 func allChildrenThen(p *Path) *Path {

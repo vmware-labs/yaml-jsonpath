@@ -999,6 +999,12 @@ another: entry`,
 			path:            `$[*,1,0,*]`,
 			expectedStrings: []string{"\"a\"\n", "\"b\"\n", "\"c\"\n", "\"b\"\n", "\"a\"\n", "\"a\"\n", "\"b\"\n", "\"c\"\n"},
 		},
+		{
+			name:            "special characters in bracket child name",
+			input:           `{":@.\"$,*'\\": 42}`,
+			path:            `$[':@."$,*\'\\']`,
+			expectedStrings: []string{"42\n"},
+		},
 	}
 
 	focussed := false

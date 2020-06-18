@@ -50,6 +50,27 @@ func TestBracketChildNames(t *testing.T) {
 			expectedStrings: []string{`Bob"s`},
 		},
 		{
+			name:            `single quoted child with escaped and unescaped quotes`,
+			input:           `'\'\\"\"'`,
+			expectedStrings: []string{`'\""`},
+		},
+		{
+			name:            `double quoted child with escaped and unescaped quotes`,
+			input:           `"\"\\'\'"`,
+			expectedStrings: []string{`"\''`},
+		},
+		// FIXME: DBCS tests
+		{
+			name:            `single quoted child with special characters`,
+			input:           `':@."$,*\'\\'`,
+			expectedStrings: []string{`:@."$,*'\`},
+		},
+		{
+			name:            `double quoted child with special characters`,
+			input:           `":@.\"$,*'\\"`,
+			expectedStrings: []string{`:@."$,*'\`},
+		},
+		{
 			name:            "child with union delimiter",
 			input:           "','",
 			expectedStrings: []string{","},
