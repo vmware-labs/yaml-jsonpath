@@ -27,12 +27,34 @@ func TestNewFilterNode(t *testing.T) {
 			expected: nil,
 		},
 		{
-			name: "literal",
+			name: "integer literal",
 			lexemes: []lexeme{
 				{typ: lexemeFilterIntegerLiteral, val: "1"},
 			},
 			expected: &filterNode{
 				lexeme:   lexeme{typ: lexemeFilterIntegerLiteral, val: "1"},
+				subpath:  []lexeme{},
+				children: []*filterNode{},
+			},
+		},
+		{
+			name: "string literal",
+			lexemes: []lexeme{
+				{typ: lexemeFilterStringLiteral, val: "a"},
+			},
+			expected: &filterNode{
+				lexeme:   lexeme{typ: lexemeFilterStringLiteral, val: "a"},
+				subpath:  []lexeme{},
+				children: []*filterNode{},
+			},
+		},
+		{
+			name: "boolean literal",
+			lexemes: []lexeme{
+				{typ: lexemeFilterBooleanLiteral, val: "true"},
+			},
+			expected: &filterNode{
+				lexeme:   lexeme{typ: lexemeFilterBooleanLiteral, val: "true"},
 				subpath:  []lexeme{},
 				children: []*filterNode{},
 			},

@@ -77,7 +77,10 @@ func nodeToFilter(n *filterNode, accept func(string, string) bool) filter {
 		match := false
 		for _, l := range lhsPath(node, root) {
 			for _, r := range rhsPath(node, root) {
-				if !accept(l, r) {
+				if !l.typ.compatibleWith(r.typ) {
+					return false
+				}
+				if !accept(l.val, r.val) {
 					return false
 				}
 				match = true
@@ -87,10 +90,12 @@ func nodeToFilter(n *filterNode, accept func(string, string) bool) filter {
 	}
 }
 
-type filterScanner func(*yaml.Node, *yaml.Node) []string
+// filterScanner is a function that returns a slice of typed values from either a filter literal or a path expression
+// which refers to either the current node or the root node. It is used in filter comparisons.
+type filterScanner func(node, root *yaml.Node) []typedValue
 
-func emptyScanner(*yaml.Node, *yaml.Node) []string {
-	return []string{}
+func emptyScanner(*yaml.Node, *yaml.Node) []typedValue {
+	return []typedValue{}
 }
 
 func newFilterScanner(n *filterNode) filterScanner {
@@ -125,11 +130,9 @@ func pathFilterScanner(n *filterNode) filterScanner {
 	}
 	path, err := NewPath(subpath)
 	if err != nil {
-		return func(node, root *yaml.Node) []string {
-			return []string{}
-		}
+		return emptyScanner
 	}
-	return func(node, root *yaml.Node) []string {
+	return func(node, root *yaml.Node) []typedValue {
 		if at {
 			return values(path.Find(node))
 		}
@@ -137,21 +140,81 @@ func pathFilterScanner(n *filterNode) filterScanner {
 	}
 }
 
-func values(nodes []*yaml.Node, err error) []string {
+type valueType int
+
+const (
+	unknownValueType valueType = iota
+	stringValueType
+	intValueType
+	floatValueType
+	booleanValueType
+	nullValueType
+	regularExpressionValueType
+)
+
+func (vt valueType) isNumeric() bool {
+	return vt == intValueType || vt == floatValueType
+}
+
+func (vt valueType) compatibleWith(vt2 valueType) bool {
+	return vt.isNumeric() && vt2.isNumeric() || vt == vt2 || vt == stringValueType && vt2 == regularExpressionValueType
+}
+
+type typedValue struct {
+	typ valueType
+	val string
+}
+
+const (
+	nullTag  = "!!null"
+	boolTag  = "!!bool"
+	strTag   = "!!str"
+	intTag   = "!!int"
+	floatTag = "!!float"
+)
+
+func typedValueOfNode(node *yaml.Node) typedValue {
+	var t valueType = unknownValueType
+	if node.Kind == yaml.ScalarNode {
+		switch node.ShortTag() {
+		case nullTag:
+			t = nullValueType
+
+		case boolTag:
+			t = booleanValueType
+
+		case strTag:
+			t = stringValueType
+
+		case intTag:
+			t = intValueType
+
+		case floatTag:
+			t = floatValueType
+		}
+	}
+
+	return typedValue{
+		typ: t,
+		val: node.Value,
+	}
+}
+
+func values(nodes []*yaml.Node, err error) []typedValue {
 	if err != nil {
 		panic(fmt.Errorf("unexpected error: %v", err)) // should never happen
 	}
-	v := []string{}
+	v := []typedValue{}
 	for _, n := range nodes {
-		v = append(v, n.Value)
+		v = append(v, typedValueOfNode(n))
 	}
 	return v
 }
 
 func literalFilterScanner(n *filterNode) filterScanner {
 	v := n.lexeme.literalValue()
-	return func(node, root *yaml.Node) []string {
-		return []string{v}
+	return func(node, root *yaml.Node) []typedValue {
+		return []typedValue{v}
 	}
 }
 

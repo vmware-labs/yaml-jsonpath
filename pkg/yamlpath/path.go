@@ -128,6 +128,9 @@ func newPath(l *lexer) (*Path, error) {
 				if filterNestingLevel == 0 {
 					break f
 				}
+			case lexemeError:
+				return nil, errors.New(lx.val)
+
 			case lexemeEOF:
 				// should never happen as lexer should have detected an error
 				return nil, errors.New("missing end of filter")

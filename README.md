@@ -70,7 +70,8 @@ Valid paths are strings conforming to the following BNF syntax.
                      "$" <subpath>                       ; item, relative to root node of a document
 <filter literal> ::= <integer> |                         ; positive or negative decimal integer
                      <floating point number> |           ; floating point number
-                     "'" <string without '> "'"          ; string enclosed in single quotes
+                     "'" <string without '> "'" |        ; string enclosed in single quotes
+                     "true" | "false"                    ; boolean (must not be quoted)
 <regular expr> ::= "/" <go regex> "/"                    ; Go regular expression with any "/" in the regex escaped as "\/"
 ```
 

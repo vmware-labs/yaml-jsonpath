@@ -1005,6 +1005,13 @@ another: entry`,
 			path:            `$[':@."$,*\'\\']`,
 			expectedStrings: []string{"42\n"},
 		},
+		{
+			name:  "filter with boolean value comparison",
+			input: `[{"a":true, "b": 1}, {"a":"true", "b": 2}]`,
+			path:  `$[?(@.a==true)]`,
+			expectedStrings: []string{`{"a": true, "b": 1}
+`},
+		},
 	}
 
 	focussed := false
