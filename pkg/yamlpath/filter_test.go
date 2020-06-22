@@ -453,6 +453,22 @@ x: "true"
 			match: false,
 		},
 		{
+			name:   "null comparison filter, path to literal, match",
+			filter: `@.x==null`,
+			yamlDoc: `---
+x: null
+`,
+			match: true,
+		},
+		{
+			name:   "null comparison filter, path to literal, no match",
+			filter: `@.x==null`,
+			yamlDoc: `---
+x: "null"
+`,
+			match: false,
+		},
+		{
 			name:   "existence || existence filter",
 			filter: "@.a || @.b",
 			yamlDoc: `---
