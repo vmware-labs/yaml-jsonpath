@@ -1012,6 +1012,13 @@ another: entry`,
 			expectedStrings: []string{`{"a": true, "b": 1}
 `},
 		},
+		{
+			name:  "filter with null value comparison",
+			input: `[{"a":null, "b": 1}, {"a":"null", "b": 2}]`,
+			path:  `$[?(@.a==null)]`,
+			expectedStrings: []string{`{"a": null, "b": 1}
+`},
+		},
 	}
 
 	focussed := false

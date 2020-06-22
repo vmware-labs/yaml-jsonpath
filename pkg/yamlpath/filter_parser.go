@@ -78,7 +78,7 @@ func (n *filterNode) isItemFilter() bool {
 }
 
 func (n *filterNode) isLiteral() bool {
-	return n.isStringLiteral() || n.isBooleanLiteral() || n.isNumericLiteral() || n.isRegularExpressionLiteral()
+	return n.isStringLiteral() || n.isBooleanLiteral() || n.isNullLiteral() || n.isNumericLiteral() || n.isRegularExpressionLiteral()
 }
 
 func (n *filterNode) isStringLiteral() bool {
@@ -87,6 +87,10 @@ func (n *filterNode) isStringLiteral() bool {
 
 func (n *filterNode) isBooleanLiteral() bool {
 	return n.lexeme.typ == lexemeFilterBooleanLiteral
+}
+
+func (n *filterNode) isNullLiteral() bool {
+	return n.lexeme.typ == lexemeFilterNullLiteral
 }
 
 func (n *filterNode) isNumericLiteral() bool {
@@ -279,7 +283,8 @@ func (p *parser) filterTerm() {
 			children: []*filterNode{},
 		}
 
-	case lexemeFilterIntegerLiteral, lexemeFilterFloatLiteral, lexemeFilterStringLiteral, lexemeFilterBooleanLiteral, lexemeFilterRegularExpressionLiteral:
+	case lexemeFilterIntegerLiteral, lexemeFilterFloatLiteral, lexemeFilterStringLiteral, lexemeFilterBooleanLiteral,
+		lexemeFilterNullLiteral, lexemeFilterRegularExpressionLiteral:
 		p.nextLexeme()
 		p.tree = &filterNode{
 			lexeme:   n,

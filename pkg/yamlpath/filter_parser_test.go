@@ -60,6 +60,17 @@ func TestNewFilterNode(t *testing.T) {
 			},
 		},
 		{
+			name: "null literal",
+			lexemes: []lexeme{
+				{typ: lexemeFilterNullLiteral, val: "null"},
+			},
+			expected: &filterNode{
+				lexeme:   lexeme{typ: lexemeFilterNullLiteral, val: "null"},
+				subpath:  []lexeme{},
+				children: []*filterNode{},
+			},
+		},
+		{
 			name: "existence filter",
 			lexemes: []lexeme{
 				{typ: lexemeFilterAt, val: "@"},

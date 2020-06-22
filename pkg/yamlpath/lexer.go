@@ -47,6 +47,7 @@ const (
 	lexemeFilterFloatLiteral
 	lexemeFilterStringLiteral
 	lexemeFilterBooleanLiteral
+	lexemeFilterNullLiteral
 	lexemeFilterRegularExpressionLiteral
 	lexemeEOF // lexing complete
 )
@@ -116,6 +117,12 @@ func (l lexeme) literalValue() typedValue {
 	case lexemeFilterBooleanLiteral:
 		return typedValue{
 			typ: booleanValueType,
+			val: l.val,
+		}
+
+	case lexemeFilterNullLiteral:
+		return typedValue{
+			typ: nullValueType,
 			val: l.val,
 		}
 
@@ -660,6 +667,10 @@ func lexFilterExprInitial(l *lexer) stateFn {
 		return nextState
 	}
 
+	if nextState, present := lexNullLiteral(l, lexFilterExpr); present {
+		return nextState
+	}
+
 	switch {
 	case l.consumed(filterOpenBracket):
 		l.emit(lexemeFilterOpenBracket)
@@ -782,6 +793,10 @@ func lexFilterTerm(l *lexer) stateFn {
 		return nextState
 	}
 
+	if nextState, present := lexNullLiteral(l, lexFilterExpr); present {
+		return nextState
+	}
+
 	return l.errorf("invalid filter term")
 }
 
@@ -872,6 +887,14 @@ func lexStringLiteral(l *lexer, nextState stateFn) (stateFn, bool) {
 func lexBooleanLiteral(l *lexer, nextState stateFn) (stateFn, bool) {
 	if l.consumedWhitespaced("true") || l.consumedWhitespaced("false") {
 		l.emit(lexemeFilterBooleanLiteral)
+		return nextState, true
+	}
+	return nil, false
+}
+
+func lexNullLiteral(l *lexer, nextState stateFn) (stateFn, bool) {
+	if l.consumedWhitespaced("null") {
+		l.emit(lexemeFilterNullLiteral)
 		return nextState, true
 	}
 	return nil, false
