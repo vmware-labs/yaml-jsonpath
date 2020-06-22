@@ -10,7 +10,7 @@ package yamlpath
    filterNode represents a node of a filter expression parse tree. Each node is labelled with a lexeme.
 
    Terminal nodes have one of the following lexemes: root, lexemeFilterAt, lexemeFilterIntegerLiteral,
-   lexemeFilterFloatLiteral, lexemeFilterStringLiteral.
+   lexemeFilterFloatLiteral, lexemeFilterStringLiteral, lexemeFilterBooleanLiteral.
    root and lexemeFilterAt nodes also have a slice of lexemes representing the subpath of `$`` or `@``,
    respectively.
 
@@ -78,11 +78,15 @@ func (n *filterNode) isItemFilter() bool {
 }
 
 func (n *filterNode) isLiteral() bool {
-	return n.isStringLiteral() || n.isNumericLiteral() || n.isRegularExpressionLiteral()
+	return n.isStringLiteral() || n.isBooleanLiteral() || n.isNumericLiteral() || n.isRegularExpressionLiteral()
 }
 
 func (n *filterNode) isStringLiteral() bool {
 	return n.lexeme.typ == lexemeFilterStringLiteral
+}
+
+func (n *filterNode) isBooleanLiteral() bool {
+	return n.lexeme.typ == lexemeFilterBooleanLiteral
 }
 
 func (n *filterNode) isNumericLiteral() bool {
@@ -275,7 +279,7 @@ func (p *parser) filterTerm() {
 			children: []*filterNode{},
 		}
 
-	case lexemeFilterIntegerLiteral, lexemeFilterFloatLiteral, lexemeFilterStringLiteral, lexemeFilterRegularExpressionLiteral:
+	case lexemeFilterIntegerLiteral, lexemeFilterFloatLiteral, lexemeFilterStringLiteral, lexemeFilterBooleanLiteral, lexemeFilterRegularExpressionLiteral:
 		p.nextLexeme()
 		p.tree = &filterNode{
 			lexeme:   n,

@@ -46,6 +46,7 @@ const (
 	lexemeFilterIntegerLiteral
 	lexemeFilterFloatLiteral
 	lexemeFilterStringLiteral
+	lexemeFilterBooleanLiteral
 	lexemeFilterRegularExpressionLiteral
 	lexemeEOF // lexing complete
 )
@@ -92,16 +93,43 @@ type lexeme struct {
 	val string // original lexeme or error message if typ is lexemeError
 }
 
-func (l lexeme) literalValue() string {
+func (l lexeme) literalValue() typedValue {
 	switch l.typ {
+	case lexemeFilterIntegerLiteral:
+		return typedValue{
+			typ: intValueType,
+			val: l.val,
+		}
+
+	case lexemeFilterFloatLiteral:
+		return typedValue{
+			typ: floatValueType,
+			val: l.val,
+		}
+
 	case lexemeFilterStringLiteral:
-		return l.val[1 : len(l.val)-1]
+		return typedValue{
+			typ: stringValueType,
+			val: l.val[1 : len(l.val)-1],
+		}
+
+	case lexemeFilterBooleanLiteral:
+		return typedValue{
+			typ: booleanValueType,
+			val: l.val,
+		}
 
 	case lexemeFilterRegularExpressionLiteral:
-		return sanitiseRegularExpressionLiteral(l.val)
+		return typedValue{
+			typ: regularExpressionValueType,
+			val: sanitiseRegularExpressionLiteral(l.val),
+		}
 
 	default:
-		return l.val
+		return typedValue{
+			typ: unknownValueType,
+			val: l.val,
+		}
 	}
 }
 
@@ -628,6 +656,10 @@ func lexFilterExprInitial(l *lexer) stateFn {
 		return nextState
 	}
 
+	if nextState, present := lexBooleanLiteral(l, lexFilterExpr); present {
+		return nextState
+	}
+
 	switch {
 	case l.consumed(filterOpenBracket):
 		l.emit(lexemeFilterOpenBracket)
@@ -746,6 +778,10 @@ func lexFilterTerm(l *lexer) stateFn {
 		return nextState
 	}
 
+	if nextState, present := lexBooleanLiteral(l, lexFilterExpr); present {
+		return nextState
+	}
+
 	return l.errorf("invalid filter term")
 }
 
@@ -828,6 +864,14 @@ func lexStringLiteral(l *lexer, nextState stateFn) (stateFn, bool) {
 		l.next()
 		l.emit(lexemeFilterStringLiteral)
 
+		return nextState, true
+	}
+	return nil, false
+}
+
+func lexBooleanLiteral(l *lexer, nextState stateFn) (stateFn, bool) {
+	if l.consumedWhitespaced("true") || l.consumedWhitespaced("false") {
+		l.emit(lexemeFilterBooleanLiteral)
 		return nextState, true
 	}
 	return nil, false

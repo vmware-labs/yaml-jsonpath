@@ -97,5 +97,7 @@ func compareNodeValues(lhs string, rhs string) comparison {
 	if numeric {
 		return compareFloat64(lhsFloat, rhsFloat)
 	}
+	// it's ok to compare other values (such as strings, booleans, and nulls) as strings
+	// because the types of lhs and rhs will already have been checked to be equal
 	return compareStrings(lhs, rhs)
 }

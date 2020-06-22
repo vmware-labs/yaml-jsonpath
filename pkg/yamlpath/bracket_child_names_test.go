@@ -59,7 +59,6 @@ func TestBracketChildNames(t *testing.T) {
 			input:           `"\"\\'\'"`,
 			expectedStrings: []string{`"\''`},
 		},
-		// FIXME: DBCS tests
 		{
 			name:            `single quoted child with special characters`,
 			input:           `':@."$,*\'\\'`,
