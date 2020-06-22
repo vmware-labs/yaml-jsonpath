@@ -78,7 +78,7 @@ func nodeToFilter(n *filterNode, accept func(string, string) bool) filter {
 		for _, l := range lhsPath(node, root) {
 			for _, r := range rhsPath(node, root) {
 				if !l.typ.compatibleWith(r.typ) {
-					return false
+					return accept("x", "y") // incompatible values should filter the same as unequal values which are not numerically comparable
 				}
 				if !accept(l.val, r.val) {
 					return false

@@ -364,7 +364,7 @@ y: [2,3]
 		},
 		{
 			name:   "numeric comparison filter, path to invalid path, no match",
-			filter: "@.x<@.y", // panics
+			filter: "@.x<@.y",
 			yamlDoc: `---
 x: 4
 y: [2,3]
@@ -373,7 +373,7 @@ y: [2,3]
 		},
 		{
 			name:   "numeric comparison filter, literal to invalid path, no match",
-			filter: "1<@.y", // panics
+			filter: "1<@.y",
 			yamlDoc: `---
 y: [2,3]
 `,
@@ -381,7 +381,7 @@ y: [2,3]
 		},
 		{
 			name:   "numeric comparison filter, invalid path to literal, no match",
-			filter: "@.y>1", // panics
+			filter: "@.y>1",
 			yamlDoc: `---
 y: [2,3]
 `,

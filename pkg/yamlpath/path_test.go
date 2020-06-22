@@ -1019,6 +1019,13 @@ another: entry`,
 			expectedStrings: []string{`{"a": null, "b": 1}
 `},
 		},
+		{
+			name:  "filter with integer that appears in string",
+			input: `[{"a": "42", "b": 1}]`,
+			path:  `$[?(@.a!=42)]`,
+			expectedStrings: []string{`{"a": "42", "b": 1}
+`},
+		},
 	}
 
 	focussed := false
