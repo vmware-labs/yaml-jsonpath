@@ -840,7 +840,7 @@ func lexNumericLiteral(l *lexer, nextState stateFn) (stateFn, bool) {
 		for {
 			l.next()
 			n := l.peek()
-			if n == '.' {
+			if n == '.' || n == 'e' || n == 'E' || n == '-' {
 				float = true
 				continue
 			}
@@ -848,6 +848,7 @@ func lexNumericLiteral(l *lexer, nextState stateFn) (stateFn, bool) {
 				break
 			}
 		}
+
 		if float {
 			// validate float
 			if _, err := strconv.ParseFloat(l.value(), 64); err != nil {

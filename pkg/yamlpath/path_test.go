@@ -1032,6 +1032,12 @@ another: entry`,
 			path:            `$[?(@>=42)]`,
 			expectedStrings: []string{"42\n", "100\n"},
 		},
+		{
+			name:            "filter with fractional float",
+			input:           `[0,-4.2,100]`,
+			path:            `$[?(@==-42E-1)]`,
+			expectedStrings: []string{"-4.2\n"},
+		},
 	}
 
 	focussed := false
