@@ -28,6 +28,10 @@ See [Why does restarting/recompiling often generate corpus?](https://github.com/
 
 Feel free to contribute new corpus, or other improvements, by pull request as usual. *Please don't check in the changes to `go.mod` and `go.sum` caused by `go-fuzz-build` as these aren't otherwise needed.*
 
+Alternatively to perform fuzzing and back out the changes to `go.mod` and `go.sum`, run `scripts/gcloud-deploy.sh`.
+
+If you wish to discard any new corpus, run `scripts/discard-new-corpus.sh`.
+
 ## Entertainment
 
 I used [watchman](https://facebook.github.io/watchman/) to print out new corpus as it's found:

@@ -14,4 +14,6 @@ To deploy to Google Application Engine, change to the `web` directory and issue:
 gcloud app deploy --version=$(git rev-parse --short HEAD)
 ```
 
+Alternatively to deploy without prompts, run `scripts/gcloud-deploy.sh`.
+
 For more information, see [Building a Go App on App Engine](https://cloud.google.com/appengine/docs/standard/go/building-app).
