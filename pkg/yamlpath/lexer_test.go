@@ -1743,6 +1743,36 @@ func TestLexer(t *testing.T) {
 				{typ: lexemeError, val: "unmatched \"'\" at position 3, following \"[\\f'\""},
 			},
 		},
+		{
+			name: "filter involving value of current node on left hand side",
+			path: "$[?(@==1)]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeFilterBegin, val: "[?("},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeFilterEquality, val: "=="},
+				{typ: lexemeFilterIntegerLiteral, val: "1"},
+				{typ: lexemeFilterEnd, val: ")]"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "filter involving value of current node on right hand side",
+			path: "$[?(1==@ || 2== @ )]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeFilterBegin, val: "[?("},
+				{typ: lexemeFilterIntegerLiteral, val: "1"},
+				{typ: lexemeFilterEquality, val: "=="},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeFilterOr, val: "||"},
+				{typ: lexemeFilterIntegerLiteral, val: "2"},
+				{typ: lexemeFilterEquality, val: "=="},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeFilterEnd, val: ")]"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
 	}
 
 	focussed := false

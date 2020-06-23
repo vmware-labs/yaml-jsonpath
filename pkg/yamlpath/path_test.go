@@ -1026,6 +1026,12 @@ another: entry`,
 			expectedStrings: []string{`{"a": "42", "b": 1}
 `},
 		},
+		{
+			name:            "filter involving value of current node",
+			input:           `[0,42,100]`,
+			path:            `$[?(@>=42)]`,
+			expectedStrings: []string{"42\n", "100\n"},
+		},
 	}
 
 	focussed := false
