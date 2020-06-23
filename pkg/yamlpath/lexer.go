@@ -686,6 +686,9 @@ func lexFilterExprInitial(l *lexer) stateFn {
 
 	case l.consumed(filterAt):
 		l.emit(lexemeFilterAt)
+		if l.peekedWhitespaced("=") || l.peekedWhitespaced("!") || l.peekedWhitespaced(">") || l.peekedWhitespaced("<") {
+			return lexFilterExpr
+		}
 		l.push(lexFilterExpr)
 		return lexSubPath
 
@@ -773,6 +776,13 @@ func lexFilterTerm(l *lexer) stateFn {
 
 	if l.consumed(filterAt) {
 		l.emit(lexemeFilterAt)
+
+		if l.peekedWhitespaced("|") || l.peekedWhitespaced("&") || l.peekedWhitespaced(")") {
+			if l.emptyStack() {
+				return l.errorf("invalid character %q", l.peek())
+			}
+			return l.pop()
+		}
 		return lexSubPath
 	}
 

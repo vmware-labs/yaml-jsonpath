@@ -64,7 +64,8 @@ Valid paths are strings conforming to the following BNF syntax.
                    <filter subpath> "=~" <regular expr> |; subpath value matches regular expression
                    "(" <filter expr> ")"                 ; bracketing
 <filter term> ::= "@" <subpath> |                        ; item relative to element being processed
-                  "$" <subpath>                          ; item relative to root node of a document
+                  "@" |                                  ; value of element being processed
+                  "$" <subpath> |                        ; item relative to root node of a document
                   <filter literal>
 <filter subpath> ::= "@" <subpath> |                     ; item, relative to element being processed
                      "$" <subpath>                       ; item, relative to root node of a document
