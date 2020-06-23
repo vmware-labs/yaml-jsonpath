@@ -854,6 +854,34 @@ func TestLexer(t *testing.T) {
 			},
 		},
 		{
+			name: "filter fractional float equality, literal on the left",
+			path: "$[?(-1.5e-1==@.child)]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeFilterBegin, val: "[?("},
+				{typ: lexemeFilterFloatLiteral, val: "-1.5e-1"},
+				{typ: lexemeFilterEquality, val: "=="},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeFilterEnd, val: ")]"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "filter fractional float equality, literal on the right",
+			path: "$[?(@.child== -1.5e-1 )]",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeFilterBegin, val: "[?("},
+				{typ: lexemeFilterAt, val: "@"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeFilterEquality, val: "=="},
+				{typ: lexemeFilterFloatLiteral, val: "-1.5e-1"},
+				{typ: lexemeFilterEnd, val: ")]"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
 			name: "filter boolean true equality, literal on the right",
 			path: "$[?(@.child== true )]",
 			expected: []lexeme{
