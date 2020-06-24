@@ -690,6 +690,22 @@ price: 8.95
 `,
 			match: false,
 		},
+		{
+			name:   "literal boolean predicate",
+			filter: "true",
+			rootDoc: `---
+- 1
+`,
+			match: true,
+		},
+		{
+			name:   "boolean expression involving literals",
+			filter: "!false",
+			rootDoc: `---
+- 1
+`,
+			match: true,
+		},
 	}
 
 	focussed := false
