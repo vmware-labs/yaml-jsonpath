@@ -9,6 +9,7 @@ package yamlpath
 import (
 	"fmt"
 	"regexp"
+	"strconv"
 
 	"gopkg.in/yaml.v3"
 )
@@ -53,6 +54,15 @@ func newFilter(n *filterNode) filter {
 		f2 := newFilter(n.children[1])
 		return func(node, root *yaml.Node) bool {
 			return f1(node, root) && f2(node, root)
+		}
+
+	case lexemeFilterBooleanLiteral:
+		b, err := strconv.ParseBool(n.lexeme.val)
+		if err != nil {
+			panic(err) // should not happen
+		}
+		return func(node, root *yaml.Node) bool {
+			return b
 		}
 
 	default:

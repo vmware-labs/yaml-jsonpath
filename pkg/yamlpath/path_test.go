@@ -1038,6 +1038,12 @@ another: entry`,
 			path:            `$[?(@==-42E-1)]`,
 			expectedStrings: []string{"-4.2\n"},
 		},
+		{
+			name:            "filter with boolean predicate",
+			input:           `[0]`,
+			path:            `$[?(true)]`,
+			expectedStrings: []string{"0\n"},
+		},
 	}
 
 	focussed := false
