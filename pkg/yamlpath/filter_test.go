@@ -469,6 +469,23 @@ x: "null"
 			match: false,
 		},
 		{
+			name:   "null comparison filter, path to literal, match on relaxed spelling",
+			filter: `@.x==null`,
+			yamlDoc: `---
+x: Null
+`,
+			match: true,
+		},
+		{
+			name:   "comparison filter, two paths to null, match on relaxed spelling",
+			filter: `@.x==@.y`,
+			yamlDoc: `---
+x: Null
+y: null
+`,
+			match: true,
+		},
+		{
 			name:   "existence || existence filter",
 			filter: "@.a || @.b",
 			yamlDoc: `---

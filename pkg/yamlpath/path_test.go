@@ -1044,6 +1044,12 @@ another: entry`,
 			path:            `$[?(true)]`,
 			expectedStrings: []string{"0\n"},
 		},
+		{
+			name:            "relaxed spelling of true, false, and null literals", // See https://yaml.org/spec/1.2/spec.html#id2805071
+			input:           `[FALSE, False, false, fAlse, TRUE, True, true, tRue, NULL, Null, null, nUll]`,
+			path:            `$[?(@==false || @==true || @==null)]`,
+			expectedStrings: []string{"FALSE\n", "False\n", "false\n", "TRUE\n", "True\n", "true\n", "NULL\n", "Null\n", "null\n"},
+		},
 	}
 
 	focussed := false
