@@ -76,38 +76,49 @@ func never(node, root *yaml.Node) bool {
 }
 
 func comparisonFilter(n *filterNode) filter {
-	return nodeToFilter(n, func(l, r string) bool {
-		return n.lexeme.comparator()(compareNodeValues(l, r))
+	compare := func(b bool) bool {
+		var c comparison
+		if b {
+			c = compareEqual
+		} else {
+			c = compareIncomparable
+		}
+		return n.lexeme.comparator()(c)
+	}
+	return nodeToFilter(n, func(l, r typedValue) bool {
+		if !l.typ.compatibleWith(r.typ) {
+			return compare(false)
+		}
+		switch l.typ {
+		case booleanValueType:
+			return compare(equalBooleans(l.val, r.val))
+
+		case nullValueType:
+			return compare(equalNulls(l.val, r.val))
+
+		default:
+			return n.lexeme.comparator()(compareNodeValues(l, r))
+		}
 	})
 }
 
-func nodeToFilter(n *filterNode, accept func(string, string) bool) filter {
+var x, y typedValue
+
+func init() {
+	x = typedValue{stringValueType, "x"}
+	y = typedValue{stringValueType, "y"}
+}
+
+func nodeToFilter(n *filterNode, accept func(typedValue, typedValue) bool) filter {
 	lhsPath := newFilterScanner(n.children[0])
 	rhsPath := newFilterScanner(n.children[1])
 	return func(node, root *yaml.Node) (result bool) {
+		// perform a set-wise comparison of the values in each path
 		match := false
 		for _, l := range lhsPath(node, root) {
 			for _, r := range rhsPath(node, root) {
-				if !l.typ.compatibleWith(r.typ) {
-					return accept("x", "y") // incompatible values should filter the same as unequal values which are not numerically comparable
-				}
-				switch l.typ {
-				case booleanValueType:
-					if equalBooleans(l.val, r.val) {
-						return accept("x", "x") // equality
-					}
-					return accept("x", "y") // inequality
-
-				case nullValueType:
-					if equalNulls(l.val, r.val) {
-						return accept("x", "x") // equality
-					}
-					return accept("x", "y") // inequality
-
-				default:
-					if !accept(l.val, r.val) {
-						return false
-					}
+				if !accept(l, r) {
+					return false
 				}
 				match = true
 			}
@@ -236,6 +247,25 @@ func typedValueOfNode(node *yaml.Node) typedValue {
 	}
 }
 
+func newTypedValue(t valueType, v string) typedValue {
+	return typedValue{
+		typ: t,
+		val: v,
+	}
+}
+
+func typedValueOfString(s string) typedValue {
+	return newTypedValue(stringValueType, s)
+}
+
+func typedValueOfInt(i string) typedValue {
+	return newTypedValue(intValueType, i)
+}
+
+func typedValueOfFloat(f string) typedValue {
+	return newTypedValue(floatValueType, f)
+}
+
 func values(nodes []*yaml.Node, err error) []typedValue {
 	if err != nil {
 		panic(fmt.Errorf("unexpected error: %v", err)) // should never happen
@@ -258,7 +288,10 @@ func matchRegularExpression(parseTree *filterNode) filter {
 	return nodeToFilter(parseTree, stringMatchesRegularExpression)
 }
 
-func stringMatchesRegularExpression(s, expr string) bool {
-	re, _ := regexp.Compile(expr) // regex already compiled during lexing
-	return re.Match([]byte(s))
+func stringMatchesRegularExpression(s, expr typedValue) bool {
+	if s.typ != stringValueType || expr.typ != regularExpressionValueType {
+		panic("unexpected types") // should never happen
+	}
+	re, _ := regexp.Compile(expr.val) // regex already compiled during lexing
+	return re.Match([]byte(s.val))
 }

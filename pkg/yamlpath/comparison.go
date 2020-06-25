@@ -73,20 +73,21 @@ func compareFloat64(lhs, rhs float64) comparison {
 	return compareEqual
 }
 
-func compareNodeValues(lhs string, rhs string) comparison {
-	numeric := true
-	lhsFloat, err := strconv.ParseFloat(lhs, 64)
+// compareNodeValues compares two values each of which may be a string, integer, or float
+func compareNodeValues(lhs, rhs typedValue) comparison {
+	if lhs.typ.isNumeric() && rhs.typ.isNumeric() {
+		return compareFloat64(mustParseFloat64(lhs.val), mustParseFloat64(rhs.val))
+	}
+	if (lhs.typ != stringValueType && !lhs.typ.isNumeric()) || (rhs.typ != stringValueType && !rhs.typ.isNumeric()) {
+		panic("invalid type of value passed to compareNodeValues") // should never happen
+	}
+	return compareStrings(lhs.val, rhs.val)
+}
+
+func mustParseFloat64(s string) float64 {
+	f, err := strconv.ParseFloat(s, 64)
 	if err != nil {
-		numeric = false
+		panic("invalid numeric value " + s) // should never happen
 	}
-	rhsFloat, err := strconv.ParseFloat(rhs, 64)
-	if err != nil {
-		numeric = false
-	}
-	if numeric {
-		return compareFloat64(lhsFloat, rhsFloat)
-	}
-	// it's ok to compare other values (such as strings, booleans, and nulls) as strings
-	// because the types of lhs and rhs will already have been checked to be equal
-	return compareStrings(lhs, rhs)
+	return f
 }
