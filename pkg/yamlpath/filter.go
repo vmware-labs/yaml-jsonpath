@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -90,14 +91,39 @@ func nodeToFilter(n *filterNode, accept func(string, string) bool) filter {
 				if !l.typ.compatibleWith(r.typ) {
 					return accept("x", "y") // incompatible values should filter the same as unequal values which are not numerically comparable
 				}
-				if !accept(l.val, r.val) {
-					return false
+				switch l.typ {
+				case booleanValueType:
+					if equalBooleans(l.val, r.val) {
+						return accept("x", "x") // equality
+					}
+					return accept("x", "y") // inequality
+
+				case nullValueType:
+					if equalNulls(l.val, r.val) {
+						return accept("x", "x") // equality
+					}
+					return accept("x", "y") // inequality
+
+				default:
+					if !accept(l.val, r.val) {
+						return false
+					}
 				}
 				match = true
 			}
 		}
 		return match
 	}
+}
+
+func equalBooleans(l, r string) bool {
+	// Note: the YAML parser and our JSONPath lexer both rule out invalid boolean literals such as tRue.
+	return strings.EqualFold(l, r)
+}
+
+func equalNulls(l, r string) bool {
+	// Note: the YAML parser and our JSONPath lexer both rule out invalid null literals such as nUll.
+	return true
 }
 
 // filterScanner is a function that returns a slice of typed values from either a filter literal or a path expression

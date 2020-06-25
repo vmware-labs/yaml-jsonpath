@@ -17,17 +17,6 @@ const (
 	compareIncomparable
 )
 
-func (c comparison) invertOrdering() comparison {
-	switch c {
-	case compareLessThan:
-		return compareGreaterThan
-	case compareGreaterThan:
-		return compareLessThan
-	default:
-		return c
-	}
-}
-
 type orderingOperator string
 
 const (
