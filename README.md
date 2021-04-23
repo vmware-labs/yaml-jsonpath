@@ -19,12 +19,13 @@ Valid paths are strings conforming to the following BNF syntax.
               <recursive descent> <subpath>
 
 <child> ::= <dot child> | <bracket child>
-<dot child> ::= "." <dotted child name> | ".*"           ; named child (restricted characters) or all children
-<bracket child> ::= "[" <child names> "]"                ; named children
+<dot child> ::= "." <dotted child name> | ".*"          ; named child (restricted characters) or all children
+<bracket child> ::= "[" <child names> "]" | "[" <child names> "]~"                ; named children | property names of children
 <child names> ::= <child name> |
                   <child name> "," <child names> 
 <undotted child> ::= <dotted child name> |               ; named child (restricted characters)
                      <dotted child name><array access> | ; array access of named child
+                     <dotted child name>"~"              ; property name of child
                     "*"                                  ; all children
                     "*" <array access>                   ; array access of all children
 <child name> ::= "'" <single quoted string> "'" |
@@ -111,6 +112,9 @@ Although either form `.childname` or `['childname']` accepts a child name with e
 `['childname']` form may be more convenient in some situations.
 
 As a special case, `.*` also matches all the nodes in each sequence node in the input slice.
+
+## Property Name:
+The Property Name Operator `~` can be included after a child name in the form of `.childname~`, `['childname']~` or `['childname1', "childname2"]~` to return the property name of the node instead of the value. this can only be used on the last part of the path
 
 ### Recursive Descent: `..childname` or `..*`
 
