@@ -49,6 +49,9 @@ const (
 	lexemeFilterBooleanLiteral
 	lexemeFilterNullLiteral
 	lexemeFilterRegularExpressionLiteral
+	lexemePropertyName
+	lexemeBracketPropertyName
+	lexemeArraySubscriptPropertyName
 	lexemeEOF // lexing complete
 )
 
@@ -142,7 +145,6 @@ func (l lexeme) literalValue() typedValue {
 
 func sanitiseRegularExpressionLiteral(re string) string {
 	return strings.ReplaceAll(re[1:len(re)-1], `\/`, `/`)
-
 }
 
 func (l lexeme) comparator() comparator {
@@ -447,6 +449,7 @@ const (
 	filterRegularExpressionLiteralDelimiter string = "/"
 	filterRegularExpressionEscape           string = `\`
 	recursiveDescent                        string = ".."
+	propertyName                            string = "~"
 )
 
 var orderingOperators []orderingOperator
@@ -536,7 +539,7 @@ func lexSubPath(l *lexer) stateFn {
 		childName := false
 		for {
 			le := l.next()
-			if le == '.' || le == '[' || le == ')' || le == ' ' || le == '&' || le == '|' || le == '=' || le == '!' || le == '>' || le == '<' || le == eof {
+			if le == '.' || le == '[' || le == ')' || le == ' ' || le == '&' || le == '|' || le == '=' || le == '!' || le == '>' || le == '<' || le == '~' || le == eof {
 				l.backup()
 				break
 			}
@@ -545,6 +548,14 @@ func lexSubPath(l *lexer) stateFn {
 		if !childName {
 			return l.errorf("child name missing")
 		}
+		if l.consumed(propertyName) {
+			if l.peek() != eof {
+				return l.errorf("property name operator may only be used on last child in path")
+			}
+			l.emit(lexemePropertyName)
+			return lexSubPath
+		}
+
 		l.emit(lexemeDotChild)
 
 		return lexOptionalArrayIndex
@@ -572,6 +583,13 @@ func lexSubPath(l *lexer) stateFn {
 		if !l.consumedWhitespaced("]") {
 			return l.errorf(`missing "]" or ","`)
 		}
+		if l.consumed(propertyName) {
+			l.emit(lexemeBracketPropertyName)
+			if l.peek() != eof {
+				return l.errorf("property name operator may only be used on last child in path")
+			}
+			return lexSubPath
+		}
 
 		l.emit(lexemeBracketChild)
 
@@ -589,7 +607,7 @@ func lexSubPath(l *lexer) stateFn {
 		childName := false
 		for {
 			le := l.next()
-			if le == '.' || le == '[' || le == ']' || le == ')' || le == ' ' || le == '&' || le == '|' || le == '=' || le == '!' || le == '>' || le == '<' || le == eof {
+			if le == '.' || le == '[' || le == ']' || le == ')' || le == ' ' || le == '&' || le == '|' || le == '=' || le == '!' || le == '>' || le == '<' || le == '~' || le == eof {
 				l.backup()
 				break
 			}
@@ -597,6 +615,13 @@ func lexSubPath(l *lexer) stateFn {
 		}
 		if !childName {
 			return l.errorf("child name missing")
+		}
+		if l.consumed(propertyName) {
+			if l.peek() != eof {
+				return l.errorf("property name operator may only be used on last child in path")
+			}
+			l.emit(lexemePropertyName)
+			return lexSubPath
 		}
 		l.emit(lexemeUndottedChild)
 
@@ -624,6 +649,19 @@ func lexOptionalArrayIndex(l *lexer) stateFn {
 		}
 		if !validateArrayIndex(l) {
 			return nil
+		}
+		if l.consumed(propertyName) {
+			if l.peek() != eof {
+				return l.errorf("property name operator can only be used on last item in path")
+			}
+			subscript := l.value()
+			index := strings.TrimSuffix(strings.TrimPrefix(subscript, leftBracket), rightBracket+propertyName)
+			if index != "*" {
+				return l.errorf("property name operator can only be used on map nodes")
+			}
+			l.emit(lexemeArraySubscriptPropertyName)
+			return lexSubPath
+
 		}
 		l.emit(lexemeArraySubscript)
 	}

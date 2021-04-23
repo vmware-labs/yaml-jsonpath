@@ -49,6 +49,7 @@ x:
   - y:
     - z: 3
       w: 4
+test~: hello world
 `
 	var n yaml.Node
 
@@ -62,6 +63,59 @@ x:
 		expectedPathErr string
 		focus           bool // if true, run only tests with focus set to true
 	}{
+		{
+			name: "property names",
+			path: "$.store~",
+			expectedStrings: []string{
+				`store
+`,
+			},
+			expectedPathErr: "",
+		},
+		{
+			name: "property names bracket child",
+			path: "$.store['book']~",
+			expectedStrings: []string{
+				`book
+`,
+			},
+			expectedPathErr: "",
+		},
+		{
+			name: "property names bracket children",
+			path: "$.store.book[0]['category','author']~",
+			expectedStrings: []string{
+				`category
+`,
+				`author
+`,
+			},
+			expectedPathErr: "",
+		},
+		{
+			name: "property names arraysubscript",
+			path: "$.store.book[0][*]~",
+			expectedStrings: []string{
+				`category
+`,
+				`author
+`,
+				`title
+`,
+				`price
+`,
+			},
+			expectedPathErr: "",
+		},
+		{
+			name: "property names bracket child with ~ in name",
+			path: "$['test~']~",
+			expectedStrings: []string{
+				`test~
+`,
+			},
+			expectedPathErr: "",
+		},
 		{
 			name: "identity",
 			path: "",
@@ -97,6 +151,7 @@ x:
 - y:
   - z: 3
     w: 4
+test~: hello world
 `},
 			expectedPathErr: "",
 		},
@@ -135,6 +190,7 @@ x:
 - y:
   - z: 3
     w: 4
+test~: hello world
 `},
 			expectedPathErr: "",
 		},
@@ -231,7 +287,8 @@ feather duster:
 		{
 			name: "undotted all children with implicit root",
 			path: "*",
-			expectedStrings: []string{`book:
+			expectedStrings: []string{
+				`book:
 - category: reference
   author: Nigel Rees
   title: Sayings of the Century
@@ -262,7 +319,10 @@ feather duster:
 - y:
   - z: 3
     w: 4
-`},
+`,
+				`hello world
+`,
+			},
 			expectedPathErr: "",
 		},
 		{
@@ -584,7 +644,8 @@ author: J. R. R. Tolkien
 title: The Lord of the Rings
 isbn: 0-395-19395-8
 price: 22.99
-`},
+`,
+			},
 			expectedPathErr: "",
 		},
 		{
@@ -595,7 +656,8 @@ price: 22.99
 author: Nigel Rees
 title: Sayings of the Century
 price: 8.95
-`},
+`,
+			},
 			expectedPathErr: "",
 		},
 		{
@@ -612,7 +674,8 @@ author: Herman Melville
 title: Moby Dick
 isbn: 0-553-21311-3
 price: 8.99
-`},
+`,
+			},
 			expectedPathErr: "",
 		},
 		{
@@ -629,7 +692,8 @@ author: Herman Melville
 title: Moby Dick
 isbn: 0-553-21311-3
 price: 8.99
-`},
+`,
+			},
 			expectedPathErr: "",
 		},
 		{
@@ -645,9 +709,11 @@ price: 8.95
 author: Evelyn Waugh
 title: Sword of Honour
 price: 12.99
-`},
+`,
+			},
 			expectedPathErr: "",
-		}, {
+		},
+		{
 			name: "array subscript ::step",
 			path: "$.store.book[::2]",
 			expectedStrings: []string{
@@ -661,7 +727,8 @@ author: Herman Melville
 title: Moby Dick
 isbn: 0-553-21311-3
 price: 8.99
-`},
+`,
+			},
 			expectedPathErr: "",
 		},
 		{
@@ -678,7 +745,8 @@ author: Herman Melville
 title: Moby Dick
 isbn: 0-553-21311-3
 price: 8.99
-`},
+`,
+			},
 			expectedPathErr: "",
 		},
 		{
@@ -706,7 +774,8 @@ author: J. R. R. Tolkien
 title: The Lord of the Rings
 isbn: 0-395-19395-8
 price: 22.99
-`},
+`,
+			},
 			expectedPathErr: "",
 		},
 		{
@@ -734,7 +803,8 @@ price: 12.99
 author: Nigel Rees
 title: Sayings of the Century
 price: 8.95
-`},
+`,
+			},
 			expectedPathErr: "",
 		},
 		{
@@ -751,7 +821,8 @@ author: Herman Melville
 title: Moby Dick
 isbn: 0-553-21311-3
 price: 8.99
-`},
+`,
+			},
 			expectedPathErr: "",
 		},
 		{
@@ -763,7 +834,8 @@ author: J. R. R. Tolkien
 title: The Lord of the Rings
 isbn: 0-395-19395-8
 price: 22.99
-`},
+`,
+			},
 			expectedPathErr: "",
 		},
 		{
@@ -804,7 +876,8 @@ author: J. R. R. Tolkien
 title: The Lord of the Rings
 isbn: 0-395-19395-8
 price: 22.99
-`},
+`,
+			},
 			expectedPathErr: "",
 		},
 		{
@@ -815,7 +888,8 @@ price: 22.99
 author: Nigel Rees
 title: Sayings of the Century
 price: 8.95
-`},
+`,
+			},
 			expectedPathErr: "",
 		},
 		{
@@ -826,7 +900,8 @@ price: 8.95
 author: Nigel Rees
 title: Sayings of the Century
 price: 8.95
-`},
+`,
+			},
 			expectedPathErr: "",
 		},
 		{
@@ -837,7 +912,8 @@ price: 8.95
 author: Nigel Rees
 title: Sayings of the Century
 price: 8.95
-`},
+`,
+			},
 			expectedPathErr: "",
 		},
 		{
@@ -858,7 +934,8 @@ price: 22.99
 				`y:
 - z: 1
   w: 2
-`},
+`,
+			},
 			expectedPathErr: "",
 		},
 		{
@@ -874,9 +951,11 @@ price: 8.95
 author: Evelyn Waugh
 title: Sword of Honour
 price: 12.99
-`},
+`,
+			},
 			expectedPathErr: "",
-		}}
+		},
+	}
 
 	focussed := false
 	for _, tc := range cases {

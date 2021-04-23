@@ -342,6 +342,330 @@ func TestLexer(t *testing.T) {
 			},
 		},
 		{
+			name: "property name dot child",
+			path: "$.child~",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemePropertyName, val: ".child~"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "property name dot child with implicit root",
+			path: ".child~",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"}, // synthetic
+				{typ: lexemePropertyName, val: ".child~"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "property name undotted child with implicit root",
+			path: "child~",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"}, // synthetic
+				{typ: lexemePropertyName, val: "child~"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "property name dot child with no name",
+			path: "$.~",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeError, val: `child name missing at position 2, following "$."`},
+			},
+		},
+		{
+			name: "property name dot child with missing dot",
+			path: "$a~",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeError, val: `invalid path syntax at position 1, following "$"`},
+			},
+		},
+		{
+			name: "property name dot child with trailing chars",
+			path: "$.child~.test",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeError, val: `property name operator may only be used on last child in path at position 8, following "$.child~"`},
+			},
+		},
+		{
+			name: "property name undotted child with trailing chars",
+			path: "child~.test",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeError, val: `property name operator may only be used on last child in path at position 6, following "child~"`},
+			},
+		},
+		{
+			name: "property name dot child with trailing dot",
+			path: "$.child.~",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeError, val: `child name missing at position 8, following ".child."`},
+			},
+		},
+		{
+			name: "property name dot child of dot child",
+			path: "$.child1.child2~",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeDotChild, val: ".child1"},
+				{typ: lexemePropertyName, val: ".child2~"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "property name dot child with wildcard array subscript",
+			path: "$.child[*]~",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeArraySubscriptPropertyName, val: "[*]~"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "property name dot child with an array subscript",
+			path: "$.child[0]~",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeError, val: `property name operator can only be used on map nodes at position 11, following ".child[0]~"`},
+			},
+		},
+		{
+			name: "property name dot child with array subscript with zero step",
+			path: "$.child[1:2:0]~",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeError, val: "invalid array index [1:2:0] before position 14: array index step value must be non-zero"},
+			},
+		},
+		{
+			name: "property name dot child with non-integer array subscript",
+			path: "$.child[1:2:a]~",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeError, val: "invalid array index [1:2:a] before position 14: non-integer array index"},
+			},
+		},
+		{
+			name: "property name dot child with unclosed array subscript",
+			path: "$.child[*~",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeError, val: `unmatched [ at position 10, following ".child[*~"`},
+			},
+		},
+		{
+			name: "property name dot child with missing array subscript",
+			path: "$.child[]~",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeError, val: "subscript missing from [] before position 9"},
+			},
+		},
+		{
+			name: "property name dot child with embedded space",
+			path: "$.child more~",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeDotChild, val: ".child"},
+				{typ: lexemeError, val: `invalid character ' ' at position 7, following ".child"`},
+			},
+		},
+		{
+			name: "property name bracket child",
+			path: "$['child']~",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketPropertyName, val: "['child']~"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "property name bracket child with double quotes",
+			path: `$["child"]~`,
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketPropertyName, val: `["child"]~`},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "property name bracket child with unmatched quotes",
+			path: `$["child']~`,
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeError, val: `unmatched '"' at position 11, following "$[\"child']~"`},
+			},
+		},
+		{
+			name: "property name bracket child with empty name",
+			path: "$['']~",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketPropertyName, val: "['']~"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "property name bracket child of bracket child",
+			path: "$['child1']['child2']~",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketChild, val: "['child1']"},
+				{typ: lexemeBracketPropertyName, val: "['child2']~"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "property name double quoted bracket child of bracket child",
+			path: `$['child1']["child2"]~`,
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketChild, val: "['child1']"},
+				{typ: lexemeBracketPropertyName, val: `["child2"]~`},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "property name bracket child union",
+			path: "$['child','child2']~",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketPropertyName, val: "['child','child2']~"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "property name bracket child union with whitespace",
+			path: "$[ 'child' , 'child2' ]~",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketPropertyName, val: "[ 'child' , 'child2' ]~"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "property name bracket child union with mixed quotes",
+			path: `$[ 'child' , "child2" ]~`,
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketPropertyName, val: `[ 'child' , "child2" ]~`},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "property name bracket child quoted union literal",
+			path: "$[',']~",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketPropertyName, val: "[',']~"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "property name bracket child with wildcard array subscript",
+			path: "$['child'][*]~",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketChild, val: "['child']"},
+				{typ: lexemeArraySubscriptPropertyName, val: "[*]~"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "property name bracket child with wildcard array subscript and trailing chars",
+			path: "$['child'][*]~.child",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketChild, val: "['child']"},
+				{typ: lexemeError, val: `property name operator can only be used on last item in path at position 14, following "['child'][*]~"`},
+			},
+		},
+		{
+			name: "property name bracket child with ~ in name",
+			path: "$['child~']~",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketPropertyName, val: "['child~']~"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
+			name: "bracket child with array subscript",
+			path: "$['child'][1]~",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketChild, val: "['child']"},
+				{typ: lexemeError, val: `property name operator can only be used on map nodes at position 14, following "['child'][1]~"`},
+			},
+		},
+		{
+			name: "property name bracket child with non-integer array subscript",
+			path: "$['child'][1:2:a]~",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketChild, val: "['child']"},
+				{typ: lexemeError, val: "invalid array index [1:2:a] before position 17: non-integer array index"},
+			},
+		},
+		{
+			name: "property name bracket child with unclosed array subscript",
+			path: "$['child'][*~",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketChild, val: "['child']"},
+				{typ: lexemeError, val: `unmatched [ at position 13, following "['child'][*~"`},
+			},
+		},
+		{
+			name: "property name bracket child with missing array subscript",
+			path: "$['child'][]~",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketChild, val: "['child']"},
+				{typ: lexemeError, val: "subscript missing from [] before position 12"},
+			},
+		},
+		{
+			name: "property name bracket child separated a  by space",
+			path: "$['child'] ~",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketChild, val: "['child']"},
+				{typ: lexemeError, val: `invalid character ' ' at position 10, following "['child']"`},
+			},
+		},
+		{
+			name: "property name bracket child followed by space",
+			path: "$['child']~ ",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketPropertyName, val: "['child']~"},
+				{typ: lexemeError, val: `property name operator may only be used on last child in path at position 11, following "['child']~"`},
+			},
+		},
+		{
+			name: "property name bracket dotted child",
+			path: "$['child1.child2']~",
+			expected: []lexeme{
+				{typ: lexemeRoot, val: "$"},
+				{typ: lexemeBracketPropertyName, val: "['child1.child2']~"},
+				{typ: lexemeIdentity, val: ""},
+			},
+		},
+		{
 			name: "array union",
 			path: "$[0,1]",
 			expected: []lexeme{

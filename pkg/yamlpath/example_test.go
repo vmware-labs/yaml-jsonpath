@@ -59,7 +59,6 @@ spec:
 
 	var buf bytes.Buffer
 	e := yaml.NewEncoder(&buf)
-	defer e.Close()
 	e.SetIndent(2)
 
 	err = e.Encode(&n)

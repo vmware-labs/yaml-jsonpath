@@ -87,6 +87,7 @@ func newPath(l *lexer) (*Path, error) {
 			return nil, err
 		}
 		childName := strings.TrimPrefix(lx.val, ".")
+
 		return childThen(childName, subPath), nil
 
 	case lexemeUndottedChild:
@@ -94,6 +95,7 @@ func newPath(l *lexer) (*Path, error) {
 		if err != nil {
 			return nil, err
 		}
+
 		return childThen(lx.val, subPath), nil
 
 	case lexemeBracketChild:
@@ -143,6 +145,31 @@ func newPath(l *lexer) (*Path, error) {
 			return nil, err
 		}
 		return filterThen(filterLexemes, subPath), nil
+	case lexemePropertyName:
+		subPath, err := newPath(l)
+		if err != nil {
+			return nil, err
+		}
+		childName := strings.TrimPrefix(lx.val, ".")
+		childName = strings.TrimSuffix(childName, propertyName)
+		return propertyNameChildThen(childName, subPath), nil
+	case lexemeBracketPropertyName:
+		subPath, err := newPath(l)
+		if err != nil {
+			return nil, err
+		}
+		childNames := strings.TrimSpace(lx.val)
+		childNames = strings.TrimSuffix(childNames, propertyName)
+		childNames = strings.TrimSuffix(strings.TrimPrefix(childNames, "["), "]")
+		childNames = strings.TrimSpace(childNames)
+		return propertyNameBracketChildThen(childNames, subPath), nil
+	case lexemeArraySubscriptPropertyName:
+		subPath, err := newPath(l)
+		if err != nil {
+			return nil, err
+		}
+		subscript := strings.TrimSuffix(strings.TrimPrefix(lx.val, "["), "]~")
+		return propertyNameArraySubscriptThen(subscript, subPath), nil
 	}
 
 	return nil, errors.New("invalid path syntax")
@@ -169,6 +196,57 @@ func compose(i yit.Iterator, p *Path, root *yaml.Node) yit.Iterator {
 
 func new(f func(node, root *yaml.Node) yit.Iterator) *Path {
 	return &Path{f: f}
+}
+
+func propertyNameChildThen(childName string, p *Path) *Path {
+	childName = unescape(childName)
+
+	return new(func(node, root *yaml.Node) yit.Iterator {
+		if node.Kind != yaml.MappingNode {
+			return empty(node, root)
+		}
+		for i, n := range node.Content {
+			if i%2 == 0 && n.Value == childName {
+				return compose(yit.FromNode(node.Content[i]), p, root)
+			}
+		}
+		return empty(node, root)
+	})
+}
+
+func propertyNameBracketChildThen(childNames string, p *Path) *Path {
+	unquotedChildren := bracketChildNames(childNames)
+
+	return new(func(node, root *yaml.Node) yit.Iterator {
+		if node.Kind != yaml.MappingNode {
+			return empty(node, root)
+		}
+		its := []yit.Iterator{}
+		for _, childName := range unquotedChildren {
+			for i, n := range node.Content {
+				if i%2 == 0 && n.Value == childName {
+					its = append(its, yit.FromNode(node.Content[i]))
+				}
+			}
+		}
+		return compose(yit.FromIterators(its...), p, root)
+	})
+}
+
+func propertyNameArraySubscriptThen(subscript string, p *Path) *Path {
+	return new(func(node, root *yaml.Node) yit.Iterator {
+		if node.Kind == yaml.MappingNode && subscript == "*" {
+			its := []yit.Iterator{}
+			for i, n := range node.Content {
+				if i%2 != 0 {
+					continue // skip child values
+				}
+				its = append(its, compose(yit.FromNode(n), p, root))
+			}
+			return yit.FromIterators(its...)
+		}
+		return empty(node, root)
+	})
 }
 
 func childThen(childName string, p *Path) *Path {
@@ -340,7 +418,6 @@ func arraySubscriptThen(subscript string, p *Path) *Path {
 			if s >= 0 && s < len(node.Content) {
 				its = append(its, compose(yit.FromNode(node.Content[s]), p, root))
 			}
-
 		}
 		return yit.FromIterators(its...)
 	})
