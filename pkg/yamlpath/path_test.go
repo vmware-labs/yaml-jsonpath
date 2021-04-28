@@ -49,6 +49,7 @@ x:
   - y:
     - z: 3
       w: 4
+test~: hello world
 `
 	var n yaml.Node
 
@@ -97,6 +98,7 @@ x:
 - y:
   - z: 3
     w: 4
+test~: hello world
 `},
 			expectedPathErr: "",
 		},
@@ -135,6 +137,7 @@ x:
 - y:
   - z: 3
     w: 4
+test~: hello world
 `},
 			expectedPathErr: "",
 		},
@@ -165,6 +168,13 @@ bicycle:
   price: 19.95
 feather duster:
   price: 9.95
+`},
+			expectedPathErr: "",
+		},
+		{
+			name: "dotted child with ~ in name",
+			path: "$.test~",
+			expectedStrings: []string{`hello world
 `},
 			expectedPathErr: "",
 		},
@@ -262,6 +272,8 @@ feather duster:
 - y:
   - z: 3
     w: 4
+`,
+`hello world
 `},
 			expectedPathErr: "",
 		},
