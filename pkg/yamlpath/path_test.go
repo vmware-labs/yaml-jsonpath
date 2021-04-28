@@ -117,6 +117,12 @@ test~: hello world
 			expectedPathErr: "",
 		},
 		{
+			name:            "dotted child with ~ in name",
+			path:            "$.test~",
+			expectedStrings: []string{},
+			expectedPathErr: "",
+		},
+		{
 			name: "identity",
 			path: "",
 			expectedStrings: []string{`store:
