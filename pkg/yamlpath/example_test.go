@@ -64,7 +64,8 @@ spec:
 
 	err = e.Encode(&n)
 	if err != nil {
-		log.Fatalf("cannot marshal node: %v", err)
+		log.Printf("Error: cannot marshal node: %v", err)
+		return
 	}
 
 	z := `apiVersion: apps/v1
