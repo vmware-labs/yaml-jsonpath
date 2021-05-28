@@ -426,10 +426,6 @@ func arraySubscriptThen(subscript string, p *Path) *Path {
 func filterThen(filterLexemes []lexeme, p *Path) *Path {
 	filter := newFilter(newFilterNode(filterLexemes))
 	return new(func(node, root *yaml.Node) yit.Iterator {
-		if node.Kind != yaml.SequenceNode {
-			return empty(node, root)
-		}
-
 		its := []yit.Iterator{}
 		for _, c := range node.Content {
 			if filter(c, root) {
