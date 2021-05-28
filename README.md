@@ -11,71 +11,70 @@ Valid paths are strings conforming to the following BNF syntax.
 
 ```
 <path> ::= <identity> | <root> <subpath> | <subpath> |
-           <undotted child> <subpath>                    ; an undotted child is allowed at the start of a path
-<identity> ::= ""                                        ; the current node
-<root> ::= "$"                                           ; the root node of a document
+           <undotted child> <subpath> | <subpath> <filter>         ; an undotted child is allowed at the start of a path
+<identity> ::= ""                                                  ; the current node
+<root> ::= "$"                                                     ; the root node of a document
 <subpath> ::= <identity> | <child> <subpath> |
               <array access> <subpath> |
               <recursive descent> <subpath>
 
 <child> ::= <dot child> | <bracket child>
-<dot child> ::= "." <dotted child name> | ".*"          ; named child (restricted characters) or all children
-<bracket child> ::= "[" <child names> "]" | "[" <child names> "]~"                ; named children | property names of children
+<dot child> ::= "." <dotted child name> | ".*"                     ; named child (restricted characters) or all children
+<bracket child> ::= "[" <child names> "]" | "[" <child names> "]~" ; named children | property names of children
 <child names> ::= <child name> |
                   <child name> "," <child names> 
-<undotted child> ::= <dotted child name> |               ; named child (restricted characters)
-                     <dotted child name><array access> | ; array access of named child
-                     <dotted child name>"~"              ; property name of child
-                    "*"                                  ; all children
-                    "*" <array access>                   ; array access of all children
+<undotted child> ::= <dotted child name> |                         ; named child (restricted characters)
+                     <dotted child name><array access> |           ; array access of named child
+                     <dotted child name>"~"                        ; property name of child
+                    "*"                                            ; all children
+                    "*" <array access>                             ; array access of all children
 <child name> ::= "'" <single quoted string> "'" |
                  '"' <double quoted string> '"'
-<single quoted string> ::= "\'" <single quoted string> | ; escaped single quote
-                           "\\" <single quoted string> | ; escaped backslash
+<single quoted string> ::= "\'" <single quoted string> |           ; escaped single quote
+                           "\\" <single quoted string> |           ; escaped backslash
                            <string without ' or \> <single quoted string> |
-                           ""                            ; empty string
-<double quoted string> ::= '\"' <double quoted string> | ; escaped double quote
-                           '\\' <double quoted string> | ; escaped backslash
+                           ""                                      ; empty string
+<double quoted string> ::= '\"' <double quoted string> |           ; escaped double quote
+                           '\\' <double quoted string> |           ; escaped backslash
                            <string without " or \> <double quoted string> |
-                           ""                            ; empty string
+                           ""                                      ; empty string
 
-<recursive descent> ::= ".." <dotted child name> |       ; all the descendants named <dotted child name>
-                        ".." <array access>              ; array access of all descendents
-
-<array access> ::= "[" union "]" | "[" <filter> "]"      ; zero or more elements of a sequence
+<recursive descent> ::= ".." <dotted child name> |                 ; all the descendants named <dotted child name>
+                        ".." <array access>  |                     ; array access of all descendents
+<array access> ::= "[" union "]" | "[" <filter> "]"                ; zero or more elements of a sequence
 
 <union> ::= <index> | <index> "," <union>
-<index> ::= <integer> | <range> | "*"                    ; specific index, range of indices, or all indices
-<range> ::= <integer> ":" <integer> |                    ; start (inclusive) to end (exclusive)
-            <integer> ":" <integer> ":" <integer>        ; start (inclusive) to end (exclusive) by step
+<index> ::= <integer> | <range> | "*"                              ; specific index, range of indices, or all indices
+<range> ::= <integer> ":" <integer> |                              ; start (inclusive) to end (exclusive)
+            <integer> ":" <integer> ":" <integer>                  ; start (inclusive) to end (exclusive) by step
 
 <filter> ::= "?(" <filter expr> ")"
 <filter expr> ::= <filter and> |
-                  <filter and> "||" <filter expr>        ; disjunction
+                  <filter and> "||" <filter expr>                  ; disjunction
 <filter and> ::= <basic filter> |
-                <basic filter> "&&" <filter and>         ; conjunction (binds more tightly than ||)
-<basic filter> ::= <filter subpath> |                    ; subpath exists
-                   "!" <basic filter> |                  ; negation
-                   <filter term> "==" <filter term> |    ; equality
-                   <filter term> "!=" <filter term> |    ; inequality
-                   <filter term> ">" <filter term> |     ; numeric greater than
-                   <filter term> ">=" <filter term> |    ; numeric greater than or equal to
-                   <filter term> "<" <filter term> |     ; numeric less than
-                   <filter term> "<=" <filter term> |    ; numeric less than or equal to
-                   <filter subpath> "=~" <regular expr> |; subpath value matches regular expression
-                   "(" <filter expr> ")"                 ; bracketing
-<filter term> ::= "@" <subpath> |                        ; item relative to element being processed
-                  "@" |                                  ; value of element being processed
-                  "$" <subpath> |                        ; item relative to root node of a document
+                <basic filter> "&&" <filter and>                   ; conjunction (binds more tightly than ||)
+<basic filter> ::= <filter subpath> |                              ; subpath exists
+                   "!" <basic filter> |                            ; negation
+                   <filter term> "==" <filter term> |              ; equality
+                   <filter term> "!=" <filter term> |              ; inequality
+                   <filter term> ">" <filter term> |               ; numeric greater than
+                   <filter term> ">=" <filter term> |              ; numeric greater than or equal to
+                   <filter term> "<" <filter term> |               ; numeric less than
+                   <filter term> "<=" <filter term> |              ; numeric less than or equal to
+                   <filter subpath> "=~" <regular expr> |          ; subpath value matches regular expression
+                   "(" <filter expr> ")"                           ; bracketing
+<filter term> ::= "@" <subpath> |                                  ; item relative to element being processed
+                  "@" |                                            ; value of element being processed
+                  "$" <subpath> |                                  ; item relative to root node of a document
                   <filter literal>
-<filter subpath> ::= "@" <subpath> |                     ; item, relative to element being processed
-                     "$" <subpath>                       ; item, relative to root node of a document
-<filter literal> ::= <integer> |                         ; positive or negative decimal integer
-                     <floating point number> |           ; floating point number
-                     "'" <string without '> "'" |        ; string enclosed in single quotes
-                     "true" | "false" |                  ; boolean (must not be quoted)
-                     "null"                              ; null (must not be quoted)
-<regular expr> ::= "/" <go regex> "/"                    ; Go regular expression with any "/" in the regex escaped as "\/"
+<filter subpath> ::= "@" <subpath> |                               ; item, relative to element being processed
+                     "$" <subpath>                                 ; item, relative to root node of a document
+<filter literal> ::= <integer> |                                   ; positive or negative decimal integer
+                     <floating point number> |                     ; floating point number
+                     "'" <string without '> "'" |                  ; string enclosed in single quotes
+                     "true" | "false" |                            ; boolean (must not be quoted)
+                     "null"                                        ; null (must not be quoted)
+<regular expr> ::= "/" <go regex> "/"                              ; Go regular expression with any "/" in the regex escaped as "\/"
 ```
 
 The `NewPath` function parses a string path and returns a corresponding value of the `Path` type and
@@ -136,9 +135,9 @@ A matcher of the form `[*]` selects all the nodes in each sequence node.
 
 ### Filters: `[?()]`
 
-This matches selects a subsequence of each sequence node in the input slice satisfying the filter expression.
+This matcher selects a subset of each node in the input satisfying the filter expression.
 
-Filter expression are composed of three kinds of term:
+Filter expressions are composed of three kinds of term:
 * `@` terms which produce a slice of descendants of the current node being matched (which is a node in one of the input sequences). Any path expression may be appended after the `@` to determine which descendants to include.
 * `$` terms which produce a slice of descendants of the root node. Any path expression may be appended after the `$` to determine which descendants to include.
 * Integer, floating point, and string literals (enclosed in single quotes, e.g. 'x').
