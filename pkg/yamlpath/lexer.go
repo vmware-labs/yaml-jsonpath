@@ -52,6 +52,7 @@ const (
 	lexemePropertyName
 	lexemeBracketPropertyName
 	lexemeArraySubscriptPropertyName
+	lexemeRecursiveFilterBegin
 	lexemeEOF // lexing complete
 )
 
@@ -596,7 +597,11 @@ func lexSubPath(l *lexer) stateFn {
 		return lexOptionalArrayIndex
 
 	case l.consumed(filterBegin):
-		l.emit(lexemeFilterBegin)
+		if l.lastEmittedLexemeType == lexemeRecursiveDescent {
+			l.emit(lexemeRecursiveFilterBegin)
+		} else {
+			l.emit(lexemeFilterBegin)
+		}
 		l.push(lexFilterEnd)
 		return lexFilterExprInitial
 

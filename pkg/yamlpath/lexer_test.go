@@ -822,7 +822,7 @@ func TestLexer(t *testing.T) {
 			expected: []lexeme{
 				{typ: lexemeRoot, val: "$"},
 				{typ: lexemeRecursiveDescent, val: ".."},
-				{typ: lexemeFilterBegin, val: "[?("},
+				{typ: lexemeRecursiveFilterBegin, val: "[?("},
 				{typ: lexemeFilterAt, val: "@"},
 				{typ: lexemeDotChild, val: ".child"},
 				{typ: lexemeFilterEnd, val: ")]"},

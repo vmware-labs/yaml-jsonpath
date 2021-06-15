@@ -116,7 +116,12 @@ func newPath(l *lexer) (*Path, error) {
 		subscript := strings.TrimSuffix(strings.TrimPrefix(lx.val, "["), "]")
 		return arraySubscriptThen(subscript, subPath), nil
 
-	case lexemeFilterBegin:
+	case lexemeFilterBegin, lexemeRecursiveFilterBegin:
+		var recursive bool
+
+		if lx.typ == lexemeRecursiveFilterBegin {
+			recursive = true
+		}
 		filterLexemes := []lexeme{}
 		filterNestingLevel := 1
 	f:
@@ -143,6 +148,9 @@ func newPath(l *lexer) (*Path, error) {
 		subPath, err := newPath(l)
 		if err != nil {
 			return nil, err
+		}
+		if recursive {
+			return recursiveFilterThen(filterLexemes, subPath), nil
 		}
 		return filterThen(filterLexemes, subPath), nil
 	case lexemePropertyName:
@@ -427,10 +435,28 @@ func filterThen(filterLexemes []lexeme, p *Path) *Path {
 	filter := newFilter(newFilterNode(filterLexemes))
 	return new(func(node, root *yaml.Node) yit.Iterator {
 		its := []yit.Iterator{}
-		for _, c := range node.Content {
-			if filter(c, root) {
-				its = append(its, compose(yit.FromNode(c), p, root))
+		if node.Kind == yaml.SequenceNode {
+			for _, c := range node.Content {
+				if filter(c, root) {
+					its = append(its, compose(yit.FromNode(c), p, root))
+				}
 			}
+		} else {
+			if filter(node, root) {
+				its = append(its, compose(yit.FromNode(node), p, root))
+			}
+		}
+		return yit.FromIterators(its...)
+	})
+}
+
+func recursiveFilterThen(filterLexemes []lexeme, p *Path) *Path {
+	filter := newFilter(newFilterNode(filterLexemes))
+	return new(func(node, root *yaml.Node) yit.Iterator {
+		its := []yit.Iterator{}
+
+		if filter(node, root) {
+			its = append(its, compose(yit.FromNode(node), p, root))
 		}
 		return yit.FromIterators(its...)
 	})

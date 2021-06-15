@@ -969,6 +969,15 @@ price: 12.99
 			},
 			expectedPathErr: "",
 		},
+		{
+			name: "map filter",
+			path: `$.store.bicycle[?(@.color == "red")]`,
+			expectedStrings: []string{
+				`color: red
+price: 19.95
+`,
+			},
+		},
 	}
 
 	focussed := false
