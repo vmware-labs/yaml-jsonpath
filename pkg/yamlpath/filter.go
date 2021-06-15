@@ -290,7 +290,7 @@ func matchRegularExpression(parseTree *filterNode) filter {
 
 func stringMatchesRegularExpression(s, expr typedValue) bool {
 	if s.typ != stringValueType || expr.typ != regularExpressionValueType {
-		panic("unexpected types") // should never happen
+		return false // can't compare types so return false
 	}
 	re, _ := regexp.Compile(expr.val) // regex already compiled during lexing
 	return re.Match([]byte(s.val))
