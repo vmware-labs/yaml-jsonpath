@@ -1099,7 +1099,7 @@ another: entry`,
 			name:            "union with wildcard and numbers (deviation from comparison project consensus)",
 			input:           `["a","b","c"]`,
 			path:            `$[*,1,0,*]`,
-			expectedStrings: []string{"\"a\"\n", "\"b\"\n", "\"c\"\n", "\"b\"\n", "\"a\"\n", "\"a\"\n", "\"b\"\n", "\"c\"\n"},
+			expectedPathErr: `invalid array index [*,1,0,*] before position 10: error in union member 0: wildcard cannot be used in union`,
 		},
 		{
 			name:            "special characters in bracket child name",

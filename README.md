@@ -41,10 +41,10 @@ Valid paths are strings conforming to the following BNF syntax.
 
 <recursive descent> ::= ".." <dotted child name> |                 ; all the descendants named <dotted child name>
                         ".." <array access>  |                     ; array access of all descendents
-<array access> ::= "[" union "]" | "[" <filter> "]"                ; zero or more elements of a sequence
+<array access> ::= "[" "*" "]" | [" union "]" | "[" <filter> "]"   ; all, zero or more elements of a sequence
 
 <union> ::= <index> | <index> "," <union>
-<index> ::= <integer> | <range> | "*"                              ; specific index, range of indices, or all indices
+<index> ::= <integer> | <range>                                    ; specific index, range of indices
 <range> ::= <integer> ":" <integer> |                              ; start (inclusive) to end (exclusive)
             <integer> ":" <integer> ":" <integer>                  ; start (inclusive) to end (exclusive) by step
 

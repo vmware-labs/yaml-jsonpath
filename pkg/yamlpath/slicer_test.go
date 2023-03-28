@@ -226,10 +226,16 @@ func TestSlicer(t *testing.T) {
 		},
 		{
 			name:        "union with duplicated results (deviation from comparison project consensus)",
-			index:       "*,1,0,1,*",
+			index:       "1,0,1",
 			length:      3,
-			expected:    []int{0, 1, 2, 1, 0, 1, 0, 1, 2},
+			expected:    []int{1, 0, 1},
 			expectedErr: "",
+		},
+		{
+			name:        "union with wildcard and index",
+			index:       "*,1",
+			length:      3,
+			expectedErr: "error in union member 0: wildcard cannot be used in union",
 		},
 		{
 			name:     "default indices with empty array",
