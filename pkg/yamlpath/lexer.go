@@ -530,7 +530,7 @@ func lexSubPath(l *lexer) stateFn {
 			}
 			childName = true
 		}
-		if !childName && !l.peeked(leftBracket, bracketQuote, bracketDoubleQuote) {
+		if !childName && !l.peeked(leftBracket) {
 			return l.errorf("child name or array access or filter missing after recursive descent")
 		}
 		l.emit(lexemeRecursiveDescent)

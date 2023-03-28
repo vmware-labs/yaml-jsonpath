@@ -102,13 +102,6 @@ func comparisonFilter(n *filterNode) filter {
 	})
 }
 
-var x, y typedValue
-
-func init() {
-	x = typedValue{stringValueType, "x"}
-	y = typedValue{stringValueType, "y"}
-}
-
 func nodeToFilter(n *filterNode, accept func(typedValue, typedValue) bool) filter {
 	lhsPath := newFilterScanner(n.children[0])
 	rhsPath := newFilterScanner(n.children[1])
