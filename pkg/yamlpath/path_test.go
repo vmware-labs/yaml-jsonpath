@@ -19,24 +19,24 @@ func TestFind(t *testing.T) {
 	y := `---
 store:
   book:
-  - category: reference
-    author: Nigel Rees
-    title: Sayings of the Century
-    price: 8.95
-  - category: fiction
-    author: Evelyn Waugh
-    title: Sword of Honour
-    price: 12.99
-  - category: fiction
-    author: Herman Melville
-    title: Moby Dick
-    isbn: 0-553-21311-3
-    price: 8.99
-  - category: fiction
-    author: J. R. R. Tolkien
-    title: The Lord of the Rings
-    isbn: 0-395-19395-8
-    price: 22.99
+    - category: reference
+      author: Nigel Rees
+      title: Sayings of the Century
+      price: 8.95
+    - category: fiction
+      author: Evelyn Waugh
+      title: Sword of Honour
+      price: 12.99
+    - category: fiction
+      author: Herman Melville
+      title: Moby Dick
+      isbn: 0-553-21311-3
+      price: 8.99
+    - category: fiction
+      author: J. R. R. Tolkien
+      title: The Lord of the Rings
+      isbn: 0-395-19395-8
+      price: 22.99
   bicycle:
     color: red
     price: 19.95
@@ -131,36 +131,36 @@ test: this is a test
 			path: "",
 			expectedStrings: []string{`store:
   book:
-  - category: reference
-    author: Nigel Rees
-    title: Sayings of the Century
-    price: 8.95
-  - category: fiction
-    author: Evelyn Waugh
-    title: Sword of Honour
-    price: 12.99
-  - category: fiction
-    author: Herman Melville
-    title: Moby Dick
-    isbn: 0-553-21311-3
-    price: 8.99
-  - category: fiction
-    author: J. R. R. Tolkien
-    title: The Lord of the Rings
-    isbn: 0-395-19395-8
-    price: 22.99
+    - category: reference
+      author: Nigel Rees
+      title: Sayings of the Century
+      price: 8.95
+    - category: fiction
+      author: Evelyn Waugh
+      title: Sword of Honour
+      price: 12.99
+    - category: fiction
+      author: Herman Melville
+      title: Moby Dick
+      isbn: 0-553-21311-3
+      price: 8.99
+    - category: fiction
+      author: J. R. R. Tolkien
+      title: The Lord of the Rings
+      isbn: 0-395-19395-8
+      price: 22.99
   bicycle:
     color: red
     price: 19.95
   feather duster:
     price: 9.95
 x:
-- y:
-  - z: 1
-    w: 2
-- y:
-  - z: 3
-    w: 4
+  - y:
+      - z: 1
+        w: 2
+  - y:
+      - z: 3
+        w: 4
 test~: hello world
 test: this is a test
 `},
@@ -171,6 +171,45 @@ test: this is a test
 			path: "$",
 			expectedStrings: []string{`store:
   book:
+    - category: reference
+      author: Nigel Rees
+      title: Sayings of the Century
+      price: 8.95
+    - category: fiction
+      author: Evelyn Waugh
+      title: Sword of Honour
+      price: 12.99
+    - category: fiction
+      author: Herman Melville
+      title: Moby Dick
+      isbn: 0-553-21311-3
+      price: 8.99
+    - category: fiction
+      author: J. R. R. Tolkien
+      title: The Lord of the Rings
+      isbn: 0-395-19395-8
+      price: 22.99
+  bicycle:
+    color: red
+    price: 19.95
+  feather duster:
+    price: 9.95
+x:
+  - y:
+      - z: 1
+        w: 2
+  - y:
+      - z: 3
+        w: 4
+test~: hello world
+test: this is a test
+`},
+			expectedPathErr: "",
+		},
+		{
+			name: "dot child",
+			path: "$.store",
+			expectedStrings: []string{`book:
   - category: reference
     author: Nigel Rees
     title: Sayings of the Century
@@ -189,45 +228,6 @@ test: this is a test
     title: The Lord of the Rings
     isbn: 0-395-19395-8
     price: 22.99
-  bicycle:
-    color: red
-    price: 19.95
-  feather duster:
-    price: 9.95
-x:
-- y:
-  - z: 1
-    w: 2
-- y:
-  - z: 3
-    w: 4
-test~: hello world
-test: this is a test
-`},
-			expectedPathErr: "",
-		},
-		{
-			name: "dot child",
-			path: "$.store",
-			expectedStrings: []string{`book:
-- category: reference
-  author: Nigel Rees
-  title: Sayings of the Century
-  price: 8.95
-- category: fiction
-  author: Evelyn Waugh
-  title: Sword of Honour
-  price: 12.99
-- category: fiction
-  author: Herman Melville
-  title: Moby Dick
-  isbn: 0-553-21311-3
-  price: 8.99
-- category: fiction
-  author: J. R. R. Tolkien
-  title: The Lord of the Rings
-  isbn: 0-395-19395-8
-  price: 22.99
 bicycle:
   color: red
   price: 19.95
@@ -240,24 +240,24 @@ feather duster:
 			name: "dot child with implicit root",
 			path: ".store",
 			expectedStrings: []string{`book:
-- category: reference
-  author: Nigel Rees
-  title: Sayings of the Century
-  price: 8.95
-- category: fiction
-  author: Evelyn Waugh
-  title: Sword of Honour
-  price: 12.99
-- category: fiction
-  author: Herman Melville
-  title: Moby Dick
-  isbn: 0-553-21311-3
-  price: 8.99
-- category: fiction
-  author: J. R. R. Tolkien
-  title: The Lord of the Rings
-  isbn: 0-395-19395-8
-  price: 22.99
+  - category: reference
+    author: Nigel Rees
+    title: Sayings of the Century
+    price: 8.95
+  - category: fiction
+    author: Evelyn Waugh
+    title: Sword of Honour
+    price: 12.99
+  - category: fiction
+    author: Herman Melville
+    title: Moby Dick
+    isbn: 0-553-21311-3
+    price: 8.99
+  - category: fiction
+    author: J. R. R. Tolkien
+    title: The Lord of the Rings
+    isbn: 0-395-19395-8
+    price: 22.99
 bicycle:
   color: red
   price: 19.95
@@ -270,24 +270,24 @@ feather duster:
 			name: "undotted child with implicit root",
 			path: "store",
 			expectedStrings: []string{`book:
-- category: reference
-  author: Nigel Rees
-  title: Sayings of the Century
-  price: 8.95
-- category: fiction
-  author: Evelyn Waugh
-  title: Sword of Honour
-  price: 12.99
-- category: fiction
-  author: Herman Melville
-  title: Moby Dick
-  isbn: 0-553-21311-3
-  price: 8.99
-- category: fiction
-  author: J. R. R. Tolkien
-  title: The Lord of the Rings
-  isbn: 0-395-19395-8
-  price: 22.99
+  - category: reference
+    author: Nigel Rees
+    title: Sayings of the Century
+    price: 8.95
+  - category: fiction
+    author: Evelyn Waugh
+    title: Sword of Honour
+    price: 12.99
+  - category: fiction
+    author: Herman Melville
+    title: Moby Dick
+    isbn: 0-553-21311-3
+    price: 8.99
+  - category: fiction
+    author: J. R. R. Tolkien
+    title: The Lord of the Rings
+    isbn: 0-395-19395-8
+    price: 22.99
 bicycle:
   color: red
   price: 19.95
@@ -301,24 +301,24 @@ feather duster:
 			path: "*",
 			expectedStrings: []string{
 				`book:
-- category: reference
-  author: Nigel Rees
-  title: Sayings of the Century
-  price: 8.95
-- category: fiction
-  author: Evelyn Waugh
-  title: Sword of Honour
-  price: 12.99
-- category: fiction
-  author: Herman Melville
-  title: Moby Dick
-  isbn: 0-553-21311-3
-  price: 8.99
-- category: fiction
-  author: J. R. R. Tolkien
-  title: The Lord of the Rings
-  isbn: 0-395-19395-8
-  price: 22.99
+  - category: reference
+    author: Nigel Rees
+    title: Sayings of the Century
+    price: 8.95
+  - category: fiction
+    author: Evelyn Waugh
+    title: Sword of Honour
+    price: 12.99
+  - category: fiction
+    author: Herman Melville
+    title: Moby Dick
+    isbn: 0-553-21311-3
+    price: 8.99
+  - category: fiction
+    author: J. R. R. Tolkien
+    title: The Lord of the Rings
+    isbn: 0-395-19395-8
+    price: 22.99
 bicycle:
   color: red
   price: 19.95
@@ -326,11 +326,11 @@ feather duster:
   price: 9.95
 `,
 				`- y:
-  - z: 1
-    w: 2
+    - z: 1
+      w: 2
 - y:
-  - z: 3
-    w: 4
+    - z: 3
+      w: 4
 `,
 				`hello world
 `,
@@ -390,24 +390,24 @@ feather duster:
 			name: "bracket child",
 			path: "$['store']",
 			expectedStrings: []string{`book:
-- category: reference
-  author: Nigel Rees
-  title: Sayings of the Century
-  price: 8.95
-- category: fiction
-  author: Evelyn Waugh
-  title: Sword of Honour
-  price: 12.99
-- category: fiction
-  author: Herman Melville
-  title: Moby Dick
-  isbn: 0-553-21311-3
-  price: 8.99
-- category: fiction
-  author: J. R. R. Tolkien
-  title: The Lord of the Rings
-  isbn: 0-395-19395-8
-  price: 22.99
+  - category: reference
+    author: Nigel Rees
+    title: Sayings of the Century
+    price: 8.95
+  - category: fiction
+    author: Evelyn Waugh
+    title: Sword of Honour
+    price: 12.99
+  - category: fiction
+    author: Herman Melville
+    title: Moby Dick
+    isbn: 0-553-21311-3
+    price: 8.99
+  - category: fiction
+    author: J. R. R. Tolkien
+    title: The Lord of the Rings
+    isbn: 0-395-19395-8
+    price: 22.99
 bicycle:
   color: red
   price: 19.95
@@ -420,24 +420,24 @@ feather duster:
 			name: "bracket child with double quotes",
 			path: `$["store"]`,
 			expectedStrings: []string{`book:
-- category: reference
-  author: Nigel Rees
-  title: Sayings of the Century
-  price: 8.95
-- category: fiction
-  author: Evelyn Waugh
-  title: Sword of Honour
-  price: 12.99
-- category: fiction
-  author: Herman Melville
-  title: Moby Dick
-  isbn: 0-553-21311-3
-  price: 8.99
-- category: fiction
-  author: J. R. R. Tolkien
-  title: The Lord of the Rings
-  isbn: 0-395-19395-8
-  price: 22.99
+  - category: reference
+    author: Nigel Rees
+    title: Sayings of the Century
+    price: 8.95
+  - category: fiction
+    author: Evelyn Waugh
+    title: Sword of Honour
+    price: 12.99
+  - category: fiction
+    author: Herman Melville
+    title: Moby Dick
+    isbn: 0-553-21311-3
+    price: 8.99
+  - category: fiction
+    author: J. R. R. Tolkien
+    title: The Lord of the Rings
+    isbn: 0-395-19395-8
+    price: 22.99
 bicycle:
   color: red
   price: 19.95
@@ -946,8 +946,8 @@ price: 22.99
 			path: "$.x[?(@.y[?(@.z==1)].w==2)]",
 			expectedStrings: []string{
 				`y:
-- z: 1
-  w: 2
+  - z: 1
+    w: 2
 `,
 			},
 			expectedPathErr: "",
