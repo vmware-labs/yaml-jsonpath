@@ -76,14 +76,14 @@ spec:
   template:
     spec:
       containers:
-      - name: nginx
-        image: example.com/user/nginx
-        ports:
-        - containerPort: 80
-      - name: nginy
-        image: example.com/user/nginy
-        ports:
-        - containerPort: 81
+        - name: nginx
+          image: example.com/user/nginx
+          ports:
+            - containerPort: 80
+        - name: nginy
+          image: example.com/user/nginy
+          ports:
+            - containerPort: 81
 `
 	if buf.String() == z {
 		fmt.Printf("success")
