@@ -9,7 +9,7 @@ JSONPath implementation for the [YAML node](https://godoc.org/gopkg.in/yaml.v3#N
 
 Valid paths are strings conforming to the following BNF syntax.
 
-```
+```bnf
 <path> ::= <identity> | <root> <subpath> | <subpath> |
            <undotted child> <subpath> | <subpath> <filter>         ; an undotted child is allowed at the start of a path
 <identity> ::= ""                                                  ; the current node
@@ -40,11 +40,12 @@ Valid paths are strings conforming to the following BNF syntax.
                            ""                                      ; empty string
 
 <recursive descent> ::= ".." <dotted child name> |                 ; all the descendants named <dotted child name>
+                        ".." <bracket child> |                     ; object access of all descendents
                         ".." <array access>  |                     ; array access of all descendents
-<array access> ::= "[" union "]" | "[" <filter> "]"                ; zero or more elements of a sequence
+<array access> ::= "[" "*" "]" | "[" union "]" | "[" <filter> "]"  ; all, zero or more elements of a sequence
 
 <union> ::= <index> | <index> "," <union>
-<index> ::= <integer> | <range> | "*"                              ; specific index, range of indices, or all indices
+<index> ::= <integer> | <range>                                    ; specific index, range of indices, or all indices
 <range> ::= <integer> ":" <integer> |                              ; start (inclusive) to end (exclusive)
             <integer> ":" <integer> ":" <integer>                  ; start (inclusive) to end (exclusive) by step
 
@@ -107,12 +108,13 @@ This matches the root node of the input YAML node. This matcher may be specified
 
 This matches the children with the given names of all the mapping nodes in the input slice. The output slice consists of all those children. The given name may be a single child name (no periods) or a series of single child names separated by periods. Non-mapping nodes in the input slice are not matched.
 
-Although either form `.childname` or `['childname']` accepts a child name with embedded spaces, the 
+Although either form `.childname` or `['childname']` accepts a child name with embedded spaces, the
 `['childname']` form may be more convenient in some situations.
 
 As a special case, `.*` also matches all the nodes in each sequence node in the input slice.
 
-## Property Name:
+## Property Name
+
 The Property Name Operator `~` can be included after a child name in the form of `.childname~`, `['childname']~` or `['childname1', "childname2"]~` to return the property name of the node instead of the value. this can only be used on the last part of the path
 
 ### Recursive Descent: `..childname` or `..*`
@@ -138,11 +140,13 @@ A matcher of the form `[*]` selects all the nodes in each sequence node.
 This matcher selects a subset of each node in the input satisfying the filter expression.
 
 Filter expressions are composed of three kinds of term:
+
 * `@` terms which produce a slice of descendants of the current node being matched (which is a node in one of the input sequences). Any path expression may be appended after the `@` to determine which descendants to include.
 * `$` terms which produce a slice of descendants of the root node. Any path expression may be appended after the `$` to determine which descendants to include.
 * Integer, floating point, and string literals (enclosed in single quotes, e.g. 'x').
 
 Filter expressions combine terms into basic filters of various sorts:
+
 * existence filters, which consist of just a `@` or `$` term, are true if and only if the given term produces a non-empty slice of descendants.
 * comparison filters (`==`, `!=`, `>`, `>=`, `<`, `<=`, `=~`) are true if and only if the same comparison is true of the values of each pair of items produced by the terms on each side of the comparison except that an empty slice always compares as false.
 
@@ -151,7 +155,7 @@ Comparison filters are normally used to compare a term which produces a slice co
 The more general case is a logical extension of this. Each value on the left hand side must pass the comparison with each value on the right hand side, except that if either side is empty, then the comparison filter
 is false (because there were no matches on that side).
 
-Comparison expressions are built from existence and/or comparison filters using familiar logical operators -- disjunction ("or", `||`), conjunction ("and", `&&`), and negation ("not", `!`) -- together with parenthesised expressions. 
+Comparison expressions are built from existence and/or comparison filters using familiar logical operators -- disjunction ("or", `||`), conjunction ("and", `&&`), and negation ("not", `!`) -- together with parenthesised expressions.
 
 ## Trying it out
 
@@ -171,12 +175,14 @@ The following sources inspired the syntax and semantics of YAML JSONPath:
 ## Developing
 
 Run the tests as usual:
-```
+
+```sh
 go test ./...
 ```
 
 Check linting (so you don't get caught out by CI), after installing [golangci-lint](https://golangci-lint.run/):
-```
+
+```sh
 ./scripts/check-lint.sh
 ```
 

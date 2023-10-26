@@ -79,7 +79,8 @@ func compareNodeValues(lhs, rhs typedValue) comparison {
 		return compareFloat64(mustParseFloat64(lhs.val), mustParseFloat64(rhs.val))
 	}
 	if (lhs.typ != stringValueType && !lhs.typ.isNumeric()) || (rhs.typ != stringValueType && !rhs.typ.isNumeric()) {
-		panic("invalid type of value passed to compareNodeValues") // should never happen
+		// we cannot compare values
+		return compareIncomparable
 	}
 	return compareStrings(lhs.val, rhs.val)
 }

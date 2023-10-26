@@ -17,6 +17,10 @@ func slice(index string, length int) ([]int, error) {
 	if union := strings.Split(index, ","); len(union) > 1 {
 		combination := []int{}
 		for i, idx := range union {
+			// check wildcard, it cannot be used in union
+			if strings.TrimSpace(idx) == "*" {
+				return nil, fmt.Errorf("error in union member %d: wildcard cannot be used in union", i)
+			}
 			sl, err := slice(idx, length)
 			if err != nil {
 				return nil, fmt.Errorf("error in union member %d: %s", i, err)
