@@ -8,16 +8,17 @@ package yamlpath
 
 import (
 	"errors"
+	"iter"
+	"slices"
 	"strings"
 	"unicode/utf8"
 
-	"github.com/dprotaso/go-yit"
 	"gopkg.in/yaml.v3"
 )
 
 // Path is a compiled YAML path expression.
 type Path struct {
-	f func(node, root *yaml.Node) yit.Iterator
+	f func(node, root *yaml.Node) iter.Seq[*yaml.Node]
 }
 
 // Find applies the Path to a YAML node and returns the addresses of the subnodes which match the Path.
@@ -26,7 +27,7 @@ func (p *Path) Find(node *yaml.Node) ([]*yaml.Node, error) {
 }
 
 func (p *Path) find(node, root *yaml.Node) []*yaml.Node {
-	return p.f(node, root).ToArray()
+	return slices.Collect(p.f(node, root))
 }
 
 // NewPath constructs a Path from a string expression.
@@ -50,11 +51,11 @@ func newPath(l *lexer) (*Path, error) {
 		if err != nil {
 			return nil, err
 		}
-		return new(func(node, root *yaml.Node) yit.Iterator {
+		return new(func(node, root *yaml.Node) iter.Seq[*yaml.Node] {
 			if node.Kind == yaml.DocumentNode {
 				node = node.Content[0]
 			}
-			return compose(yit.FromNode(node), subPath, root)
+			return compose(fromNode(node), subPath, root)
 		}), nil
 
 	case lexemeRecursiveDescent:
@@ -66,18 +67,18 @@ func newPath(l *lexer) (*Path, error) {
 		switch childName {
 		case "*":
 			// includes all nodes, not just mapping nodes
-			return new(func(node, root *yaml.Node) yit.Iterator {
-				return compose(yit.FromNode(node).RecurseNodes(), allChildrenThen(subPath), root)
+			return new(func(node, root *yaml.Node) iter.Seq[*yaml.Node] {
+				return compose(recurseNode(node), allChildrenThen(subPath), root)
 			}), nil
 
 		case "":
-			return new(func(node, root *yaml.Node) yit.Iterator {
-				return compose(yit.FromNode(node).RecurseNodes(), subPath, root)
+			return new(func(node, root *yaml.Node) iter.Seq[*yaml.Node] {
+				return compose(recurseNode(node), subPath, root)
 			}), nil
 
 		default:
-			return new(func(node, root *yaml.Node) yit.Iterator {
-				return compose(yit.FromNode(node).RecurseNodes(), childThen(childName, subPath), root)
+			return new(func(node, root *yaml.Node) iter.Seq[*yaml.Node] {
+				return compose(recurseNode(node), childThen(childName, subPath), root)
 			}), nil
 		}
 
@@ -183,39 +184,39 @@ func newPath(l *lexer) (*Path, error) {
 	return nil, errors.New("invalid path syntax")
 }
 
-func identity(node, root *yaml.Node) yit.Iterator {
+func identity(node, root *yaml.Node) iter.Seq[*yaml.Node] {
 	if node.Kind == 0 {
-		return yit.FromNodes()
+		return fromNodes()
 	}
-	return yit.FromNode(node)
+	return fromNode(node)
 }
 
-func empty(node, root *yaml.Node) yit.Iterator {
-	return yit.FromNodes()
+func empty(node, root *yaml.Node) iter.Seq[*yaml.Node] {
+	return fromNodes()
 }
 
-func compose(i yit.Iterator, p *Path, root *yaml.Node) yit.Iterator {
-	its := []yit.Iterator{}
-	for a, ok := i(); ok; a, ok = i() {
+func compose(i iter.Seq[*yaml.Node], p *Path, root *yaml.Node) iter.Seq[*yaml.Node] {
+	its := []iter.Seq[*yaml.Node]{}
+	for a := range i {
 		its = append(its, p.f(a, root))
 	}
-	return yit.FromIterators(its...)
+	return fromIterators(its...)
 }
 
-func new(f func(node, root *yaml.Node) yit.Iterator) *Path {
+func new(f func(node, root *yaml.Node) iter.Seq[*yaml.Node]) *Path {
 	return &Path{f: f}
 }
 
 func propertyNameChildThen(childName string, p *Path) *Path {
 	childName = unescape(childName)
 
-	return new(func(node, root *yaml.Node) yit.Iterator {
+	return new(func(node, root *yaml.Node) iter.Seq[*yaml.Node] {
 		if node.Kind != yaml.MappingNode {
 			return empty(node, root)
 		}
 		for i, n := range node.Content {
 			if i%2 == 0 && n.Value == childName {
-				return compose(yit.FromNode(node.Content[i]), p, root)
+				return compose(fromNode(node.Content[i]), p, root)
 			}
 		}
 		return empty(node, root)
@@ -225,33 +226,33 @@ func propertyNameChildThen(childName string, p *Path) *Path {
 func propertyNameBracketChildThen(childNames string, p *Path) *Path {
 	unquotedChildren := bracketChildNames(childNames)
 
-	return new(func(node, root *yaml.Node) yit.Iterator {
+	return new(func(node, root *yaml.Node) iter.Seq[*yaml.Node] {
 		if node.Kind != yaml.MappingNode {
 			return empty(node, root)
 		}
-		its := []yit.Iterator{}
+		its := []iter.Seq[*yaml.Node]{}
 		for _, childName := range unquotedChildren {
 			for i, n := range node.Content {
 				if i%2 == 0 && n.Value == childName {
-					its = append(its, yit.FromNode(node.Content[i]))
+					its = append(its, fromNode(node.Content[i]))
 				}
 			}
 		}
-		return compose(yit.FromIterators(its...), p, root)
+		return compose(fromIterators(its...), p, root)
 	})
 }
 
 func propertyNameArraySubscriptThen(subscript string, p *Path) *Path {
-	return new(func(node, root *yaml.Node) yit.Iterator {
+	return new(func(node, root *yaml.Node) iter.Seq[*yaml.Node] {
 		if node.Kind == yaml.MappingNode && subscript == "*" {
-			its := []yit.Iterator{}
+			its := []iter.Seq[*yaml.Node]{}
 			for i, n := range node.Content {
 				if i%2 != 0 {
 					continue // skip child values
 				}
-				its = append(its, compose(yit.FromNode(n), p, root))
+				its = append(its, compose(fromNode(n), p, root))
 			}
-			return yit.FromIterators(its...)
+			return fromIterators(its...)
 		}
 		return empty(node, root)
 	})
@@ -263,13 +264,13 @@ func childThen(childName string, p *Path) *Path {
 	}
 	childName = unescape(childName)
 
-	return new(func(node, root *yaml.Node) yit.Iterator {
+	return new(func(node, root *yaml.Node) iter.Seq[*yaml.Node] {
 		if node.Kind != yaml.MappingNode {
 			return empty(node, root)
 		}
 		for i, n := range node.Content {
 			if i%2 == 0 && n.Value == childName {
-				return compose(yit.FromNode(node.Content[i+1]), p, root)
+				return compose(fromNode(node.Content[i+1]), p, root)
 			}
 		}
 		return empty(node, root)
@@ -338,19 +339,19 @@ func balanced(c string, q rune) bool {
 func bracketChildThen(childNames string, p *Path) *Path {
 	unquotedChildren := bracketChildNames(childNames)
 
-	return new(func(node, root *yaml.Node) yit.Iterator {
+	return new(func(node, root *yaml.Node) iter.Seq[*yaml.Node] {
 		if node.Kind != yaml.MappingNode {
 			return empty(node, root)
 		}
-		its := []yit.Iterator{}
+		its := []iter.Seq[*yaml.Node]{}
 		for _, childName := range unquotedChildren {
 			for i, n := range node.Content {
 				if i%2 == 0 && n.Value == childName {
-					its = append(its, yit.FromNode(node.Content[i+1]))
+					its = append(its, fromNode(node.Content[i+1]))
 				}
 			}
 		}
-		return compose(yit.FromIterators(its...), p, root)
+		return compose(fromIterators(its...), p, root)
 	})
 }
 
@@ -375,24 +376,24 @@ func unescape(raw string) string {
 }
 
 func allChildrenThen(p *Path) *Path {
-	return new(func(node, root *yaml.Node) yit.Iterator {
+	return new(func(node, root *yaml.Node) iter.Seq[*yaml.Node] {
 		switch node.Kind {
 		case yaml.MappingNode:
-			its := []yit.Iterator{}
+			its := []iter.Seq[*yaml.Node]{}
 			for i, n := range node.Content {
 				if i%2 == 0 {
 					continue // skip child names
 				}
-				its = append(its, compose(yit.FromNode(n), p, root))
+				its = append(its, compose(fromNode(n), p, root))
 			}
-			return yit.FromIterators(its...)
+			return fromIterators(its...)
 
 		case yaml.SequenceNode:
-			its := []yit.Iterator{}
-			for i := 0; i < len(node.Content); i++ {
-				its = append(its, compose(yit.FromNode(node.Content[i]), p, root))
+			its := []iter.Seq[*yaml.Node]{}
+			for i := range node.Content {
+				its = append(its, compose(fromNode(node.Content[i]), p, root))
 			}
-			return yit.FromIterators(its...)
+			return fromIterators(its...)
 
 		default:
 			return empty(node, root)
@@ -401,16 +402,16 @@ func allChildrenThen(p *Path) *Path {
 }
 
 func arraySubscriptThen(subscript string, p *Path) *Path {
-	return new(func(node, root *yaml.Node) yit.Iterator {
+	return new(func(node, root *yaml.Node) iter.Seq[*yaml.Node] {
 		if node.Kind == yaml.MappingNode && subscript == "*" {
-			its := []yit.Iterator{}
+			its := []iter.Seq[*yaml.Node]{}
 			for i, n := range node.Content {
 				if i%2 == 0 {
 					continue // skip child names
 				}
-				its = append(its, compose(yit.FromNode(n), p, root))
+				its = append(its, compose(fromNode(n), p, root))
 			}
-			return yit.FromIterators(its...)
+			return fromIterators(its...)
 		}
 		if node.Kind != yaml.SequenceNode {
 			return empty(node, root)
@@ -421,43 +422,71 @@ func arraySubscriptThen(subscript string, p *Path) *Path {
 			panic(err) // should not happen, lexer should have detected errors
 		}
 
-		its := []yit.Iterator{}
+		its := []iter.Seq[*yaml.Node]{}
 		for _, s := range slice {
 			if s >= 0 && s < len(node.Content) {
-				its = append(its, compose(yit.FromNode(node.Content[s]), p, root))
+				its = append(its, compose(fromNode(node.Content[s]), p, root))
 			}
 		}
-		return yit.FromIterators(its...)
+		return fromIterators(its...)
 	})
 }
 
 func filterThen(filterLexemes []lexeme, p *Path) *Path {
 	filter := newFilter(newFilterNode(filterLexemes))
-	return new(func(node, root *yaml.Node) yit.Iterator {
-		its := []yit.Iterator{}
+	return new(func(node, root *yaml.Node) iter.Seq[*yaml.Node] {
+		its := []iter.Seq[*yaml.Node]{}
 		if node.Kind == yaml.SequenceNode {
 			for _, c := range node.Content {
 				if filter(c, root) {
-					its = append(its, compose(yit.FromNode(c), p, root))
+					its = append(its, compose(fromNode(c), p, root))
 				}
 			}
 		} else {
 			if filter(node, root) {
-				its = append(its, compose(yit.FromNode(node), p, root))
+				its = append(its, compose(fromNode(node), p, root))
 			}
 		}
-		return yit.FromIterators(its...)
+		return fromIterators(its...)
 	})
 }
 
 func recursiveFilterThen(filterLexemes []lexeme, p *Path) *Path {
 	filter := newFilter(newFilterNode(filterLexemes))
-	return new(func(node, root *yaml.Node) yit.Iterator {
-		its := []yit.Iterator{}
+	return new(func(node, root *yaml.Node) iter.Seq[*yaml.Node] {
+		its := []iter.Seq[*yaml.Node]{}
 
 		if filter(node, root) {
-			its = append(its, compose(yit.FromNode(node), p, root))
+			its = append(its, compose(fromNode(node), p, root))
 		}
-		return yit.FromIterators(its...)
+		return fromIterators(its...)
 	})
+}
+
+func fromIterators(its ...iter.Seq[*yaml.Node]) iter.Seq[*yaml.Node] {
+	return func(yield func(*yaml.Node) bool) {
+		for _, seq := range its {
+			seq(yield)
+		}
+	}
+}
+
+func fromNode(node *yaml.Node) iter.Seq[*yaml.Node] {
+	return fromNodes(node)
+}
+
+func fromNodes(nodes ...*yaml.Node) iter.Seq[*yaml.Node] {
+	return slices.Values(nodes)
+}
+
+func recurseNode(node *yaml.Node) iter.Seq[*yaml.Node] {
+	return func(yield func(*yaml.Node) bool) {
+		for _, n := range node.Content {
+			seq := recurseNode(n)
+			seq(yield)
+		}
+		if !yield(node) {
+			return
+		}
+	}
 }

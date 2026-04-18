@@ -13,12 +13,12 @@ jobs:
       - name: Install Go
         uses: actions/setup-go@v1
         with:
-          go-version: 1.14.x
+          go-version: 1.23.x
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Install golangci-lint
         run: |
-          go get github.com/golangci/golangci-lint/cmd/golangci-lint
+          go install github.com/golangci/golangci-lint/cmd/golangci-lint
       - name: Run linters
         run: |
           export PATH=$PATH:$(go env GOPATH)/bin
@@ -26,7 +26,7 @@ jobs:
   test:
     strategy:
       matrix:
-        go-version: [1.14.x]
+        go-version: [1.23.x]
         platform: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.platform }}
     steps:
