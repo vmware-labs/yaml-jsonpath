@@ -12,7 +12,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/dprotaso/go-yit"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v3"
 )
 
 // Path is a compiled YAML path expression.

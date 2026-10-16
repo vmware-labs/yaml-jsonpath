@@ -13,7 +13,7 @@ import (
 
 	"github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/vmware-labs/yaml-jsonpath/pkg/yamlpath"
-	"gopkg.in/yaml.v3"
+	"go.yaml.in/yaml/v3"
 )
 
 // Example uses a Path to find certain nodes and replace their content. Unlike a global change, it avoids false positives.
